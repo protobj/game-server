@@ -1,77 +1,89 @@
 package io.protobj.hotswap;
 
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import lombok.extern.slf4j.Slf4j;
+import io.protobj.util.FileUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
+import static io.protobj.util.NetUtil.getIpAddress;
 import static java.net.HttpURLConnection.HTTP_OK;
 
-@Slf4j
 public class HotSwapManger {
+    private static final Logger log = LoggerFactory.getLogger(HotSwapManger.class);
 
-    private int httpPort;
 
-    private String hotswapDir;
+    private HotSwapConfig hotSwapConfig;
 
-    private String addDir;
+    private Map<String, Record> swapRecordMap = new ConcurrentHashMap<>();
+    private List<Record> swapSuccessList = new CopyOnWriteArrayList<>();
+    private List<Record> swapFailList = new CopyOnWriteArrayList<>();
+    private Map<String, Record> addRecordMap = new ConcurrentHashMap<>();
+    private List<Record> addSuccessList = new CopyOnWriteArrayList<>();
+    private List<Record> addFailList = new CopyOnWriteArrayList<>();
 
     public HotSwapManger() {
     }
 
-    public static String getIpAddress() {
-        try {
-            Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
-            InetAddress ip = null;
-            while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = allNetInterfaces.nextElement();
-                if (!netInterface.isLoopback() && !netInterface.isVirtual() && netInterface.isUp()) {
-                    Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
-                    while (addresses.hasMoreElements()) {
-                        ip = addresses.nextElement();
-                        if (ip instanceof Inet4Address) {
-                            return ip.getHostAddress();
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        throw new RuntimeException("can not getIp");
-    }
 
-    public void start() {
+    public void start(HotSwapConfig hotSwapConfig) {
+        this.hotSwapConfig = hotSwapConfig;
         try {
             String host = getIpAddress();
-            int port = Integer.getInteger("io.protobj.hotswap.port", 12500);
-            HttpServer httpServer = HttpServer.create(new InetSocketAddress(host, port), 1);
-            httpServer.createContext("/hotswap", this::atHotswapReq);
-            httpServer.createContext("/info", this::atInfoReq);
-            httpServer.createContext("/add", this::atAddReq);
+            //随机端口
+            HttpServer httpServer = HttpServer.create(new InetSocketAddress(host, 0), 1);
+            httpServer.createContext("/swap", new HttpHandlerWrapper(this::atHotswapReq));
+            httpServer.createContext("/swapInfo", new HttpHandlerWrapper(this::atInfoReq));
+            httpServer.createContext("/add", new HttpHandlerWrapper(this::atAddReq));
+            httpServer.createContext("/addInfo", new HttpHandlerWrapper(this::atAddReq));
             httpServer.start();
-            log.warn("HotSwapManger http service start at %s:%d".formatted(host, port));
+            log.warn("HotSwapManger http service start at %s:%d".formatted(host, httpServer.getAddress().getPort()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void atAddReq(HttpExchange httpExchange) {
-        checkReq(httpExchange);
+    public class HttpHandlerWrapper implements HttpHandler {
+        HttpHandler httpHandler;
 
+        public HttpHandlerWrapper(HttpHandler httpHandler) {
+            this.httpHandler = httpHandler;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) {
+            try {
+                checkReq(exchange);
+                httpHandler.handle(exchange);
+            } catch (Throwable e) {
+                try {
+                    e.printStackTrace();
+                    exchange.sendResponseHeaders(HTTP_OK, 0);
+                    String message = e.getMessage();
+                    exchange.getResponseBody().write(message == null ? "null".getBytes() : message.getBytes(StandardCharsets.UTF_8));
+                    exchange.close();
+                } catch (IOException ex) {
+                    log.error("atHotswapReq error", ex);
+                }
+            }
+        }
     }
+
 
     private void checkReq(HttpExchange httpExchange) {
         log.warn("recv http req remote:%s path:%s".formatted(httpExchange.getRemoteAddress(), httpExchange.getRequestURI().toString()));
@@ -84,13 +96,12 @@ public class HotSwapManger {
 
     private void atHotswapReq(HttpExchange exchange) {
         try {
-            checkReq(exchange);
-            List<String>[] lists = hotSwap("D:\\io");
-            StringBuilder result = new StringBuilder("hotswap success:%n".formatted());
+            List<String>[] lists = hotSwap(hotSwapConfig.getSwapDir());
+            StringBuilder result = new StringBuilder("swap success:%n".formatted());
             for (String list : lists[0]) {
                 result.append("\t".formatted()).append(list).append("%n".formatted());
             }
-            result.append("hotswap fail:%n".formatted());
+            result.append("swap fail:%n".formatted());
             for (String list : lists[1]) {
                 result.append("\t".formatted()).append(list).append("%n".formatted());
             }
@@ -98,17 +109,8 @@ public class HotSwapManger {
             exchange.getResponseBody().write(result.toString().getBytes(StandardCharsets.UTF_8));
             exchange.close();
         } catch (Exception e) {
-            try {
-                e.printStackTrace();
-                exchange.sendResponseHeaders(HTTP_OK, 0);
-                String message = e.getMessage();
-                exchange.getResponseBody().write(message == null ? "null".getBytes() : message.getBytes(StandardCharsets.UTF_8));
-                exchange.close();
-            } catch (IOException ex) {
-                log.error("atHotswapReq error", ex);
-            }
+            throw new RuntimeException(e);
         }
-
     }
 
     private void atInfoReq(HttpExchange exchange) {
@@ -116,18 +118,25 @@ public class HotSwapManger {
 
     }
 
-
-    private Map<String, UpdateFile> updateFiles = new ConcurrentHashMap<>();
-
-    public static record UpdateFile(String fileName, long lastModified) {
+    private void atAddReq(HttpExchange httpExchange) {
+        try {
+            checkReq(httpExchange);
+            final long startTime = System.currentTimeMillis();
+            List<Path> files = FileUtil.getPaths(path -> path.toFile().getName().endsWith(".java"), hotSwapConfig.getAddDir());
+            Map<Class, byte[]> swapMap = getChangeClassMap(files, addRecordMap);
+            List<String>[] lists = hotSwap0(swapMap);
+            log.error("热替换耗时[{}]毫秒", System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public List<String>[] hotSwap(String... dirs) throws Exception {
         final long startTime = System.currentTimeMillis();
-        List<Path> files = getPaths(dirs);
-        Map<Class, byte[]> swapMap = getChangeClassMap(files);
+        List<Path> files = FileUtil.getPaths(path -> path.toFile().getName().endsWith(".java"), dirs);
+        Map<Class, byte[]> swapMap = getChangeClassMap(files, swapRecordMap);
         List<String>[] lists = hotSwap0(swapMap);
-        log.error("热更耗时[{}]毫秒", System.currentTimeMillis() - startTime);
+        log.error("热替换耗时[{}]毫秒", System.currentTimeMillis() - startTime);
         return lists;
     }
 
@@ -137,61 +146,46 @@ public class HotSwapManger {
         result[1] = new ArrayList<>();
         swapMap.forEach((key, value) -> {
             try {
-                JavaAssistUtil.swapClass(key, value);
+                JavassistUtil.swapClass(key, value);
                 result[0].add(key.getName());
-                log.warn("更新成功 [{}]", key.getName());
+                log.warn("替换成功 [{}]", key.getName());
             } catch (Exception e) {
-                updateFiles.remove(key.getName());
+                Record remove = swapRecordMap.remove(key.getName());
+                if (remove != null) {
+                    swapSuccessList.remove(remove);
+                    swapFailList.add(remove);
+                }
                 result[1].add(key.getName());
-                log.warn("更新失败 [" + key.getName() + "]", e);
+                log.warn("替换失败 [" + key.getName() + "]", e);
             }
         });
         return result;
     }
 
-    private Map<Class, byte[]> getChangeClassMap(List<Path> files) throws Exception {
-        Map<Class, byte[]> swapMap = new HashMap<>();
+    private Map<Class, byte[]> getChangeClassMap(List<Path> files, Map<String, Record> recordMap) throws Exception {
+        Map<Class, byte[]> resultMap = new HashMap<>();
         for (Path path : files) {
             List<String> strings = Files.readAllLines(path);
             final File newFile = path.toFile();
             String className = strings.get(0).replace("package", "").replace(";", "").trim()
                     + "." + newFile.getName().replace(".java", "");
-            final UpdateFile oldFile = updateFiles.get(newFile.getPath());
-            if (oldFile != null && newFile.lastModified() == oldFile.lastModified()) {
+            Record record = recordMap.get(className);
+            String fileContent = strings.stream().collect(Collectors.joining());
+            if (record != null && record.fileContent().equals(fileContent)) {
                 log.error("file [{}] has been hotswap ", path.toFile());
             } else {
                 InMemoryJavaCompiler inMemoryJavaCompiler = InMemoryJavaCompiler.newInstance();
-                inMemoryJavaCompiler.compile(className, strings.stream().collect(Collectors.joining()));
+                inMemoryJavaCompiler.compile(className, fileContent);
                 Map<String, byte[]> customCompiledCode = inMemoryJavaCompiler.getClassLoader().getCustomCompiledCode();
                 for (Map.Entry<String, byte[]> entry : customCompiledCode.entrySet()) {
                     final Class<?> key = Class.forName(entry.getKey());
-                    swapMap.put(key, entry.getValue());
+                    resultMap.put(key, entry.getValue());
                 }
-                updateFiles.put(className, new UpdateFile(newFile.getPath(), newFile.lastModified()));
+                Record value = new Record(newFile.getPath(), className, System.currentTimeMillis(), fileContent);
+                recordMap.put(className, value);
             }
         }
-        return swapMap;
+        return resultMap;
     }
 
-    private List<Path> getPaths(String[] dirs) throws IOException {
-        List<Path> files = new ArrayList<>();
-        for (String dir : dirs) {
-            Files.walkFileTree(Paths.get(dir), new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    final File e = file.toFile();
-                    if (e.getName().endsWith(".java")) {
-                        files.add(file);
-                    }
-                    return super.visitFile(file, attrs);
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        }
-        return files;
-    }
 }

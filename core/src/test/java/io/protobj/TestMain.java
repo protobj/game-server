@@ -1,6 +1,7 @@
 package io.protobj;
 
 import io.protobj.event.Test;
+import io.protobj.hotswap.HotSwapConfig;
 import io.protobj.hotswap.HotSwapManger;
 
 import java.net.UnknownHostException;
@@ -10,7 +11,7 @@ import java.util.TimerTask;
 public class TestMain {
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, UnknownHostException {
         HotSwapManger hotSwapManger = new HotSwapManger();
-        hotSwapManger.start();
+        hotSwapManger.start(new HotSwapConfig("d:\\swap", "d:\\add"));
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {

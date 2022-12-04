@@ -4,10 +4,12 @@ import io.protobj.BeanContainer;
 import io.protobj.Module;
 import javassist.*;
 import javassist.bytecode.SignatureAttribute;
-import lombok.extern.slf4j.Slf4j;
+import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -17,8 +19,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-@Slf4j
 public class DefaultEventBus implements EvenBus {
+    private static final Logger log = LoggerFactory.getLogger(DefaultEventBus.class);
     private final Map<Class<? extends Event>, List<Subscriber>> subscriberMap = new HashMap<>();
 
     @Override
@@ -49,6 +51,26 @@ public class DefaultEventBus implements EvenBus {
             if (bean == null) {
                 throw new RuntimeException("class have no instance:%s".formatted(subscriber.getDeclaringClass().getName()));
             }
+            try {
+                Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean);
+                Class[] annotationsByType = subscriber.getAnnotation(Subscribe.class).value();
+                registerSubscriber(annotationsByType.length > 0 ? annotationsByType : new Class[]{subscriber.getParameterTypes()[2]}, enhanceSubscriber);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public void register(Object bean) {
+        if (bean instanceof Subscriber subscriber) {
+            ParameterizedType genericInterface = (ParameterizedType) bean.getClass().getGenericInterfaces()[0];
+            Class<? extends Event> actualTypeArgument = (Class<? extends Event>) genericInterface.getActualTypeArguments()[0];
+            registerSubscriber(new Class[]{actualTypeArgument}, subscriber);
+        }
+        Set<Method> allMethods = ReflectionUtils.getAllMethods(bean.getClass(), it -> it.getAnnotation(Subscribe.class) != null);
+        for (Method subscriber : allMethods) {
+            checkSubscriber(subscriber);
             try {
                 Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean);
                 Class[] annotationsByType = subscriber.getAnnotation(Subscribe.class).value();

@@ -3,7 +3,8 @@ package io.protobj.hotswap;
 import com.sun.tools.attach.VirtualMachine;
 import javassist.ClassPool;
 import javassist.util.HotSwapAgent;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.instrument.ClassDefinition;
@@ -11,9 +12,8 @@ import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 
-@Slf4j
-public class JavaAssistUtil {
-
+public class JavassistUtil {
+    private static final Logger log = LoggerFactory.getLogger(JavassistUtil.class);
     private volatile static Instrumentation instrumentation;
 
     public static ClassPool getClassPool() {
@@ -53,7 +53,7 @@ public class JavaAssistUtil {
             }
             final Field instrumentation = HotSwapAgent.class.getDeclaredField("instrumentation");
             instrumentation.setAccessible(true);
-            JavaAssistUtil.instrumentation = (Instrumentation) instrumentation.get(null);
+            JavassistUtil.instrumentation = (Instrumentation) instrumentation.get(null);
         }
     }
 

@@ -14,6 +14,8 @@ public interface EvenBus {
 
     void register(List<Module> moduleList, BeanContainer beanContainer);
 
+    void register(Object bean);
+
     void registerSubscriber(Subscriber subscriber, Class<? extends Event> event);
 
     void post(Response response, EventHolder holder, Event event);
