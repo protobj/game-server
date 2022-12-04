@@ -1,2 +1,2 @@
-# vertx-game-server
-vertx-game-server
+# game-server
+game-server
