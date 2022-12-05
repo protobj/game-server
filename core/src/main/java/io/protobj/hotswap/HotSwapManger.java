@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,9 +34,10 @@ public class HotSwapManger {
 
     private HotSwapConfig hotSwapConfig;
 
-    private final Map<String, Record> swapRecordMap = new ConcurrentHashMap<>();
-    private final List<String> swapLogs = new CopyOnWriteArrayList<>();
-    private final List<String> addLogs = new CopyOnWriteArrayList<>();
+    private final Map<String, Record> swapRecordMap = new HashMap<>();
+    private final List<String> swapLogs = new ArrayList<>();
+    private final List<String> addLogs = new ArrayList<>();
+    private final Set<String> initScriptClass = new HashSet<>();
 
     private final InMemoryJavaCompiler javaCompiler = InMemoryJavaCompiler.newInstance();
 
@@ -152,10 +154,12 @@ public class HotSwapManger {
                     sb.append(s = "add class [%s]%n".formatted(className));
                     log.warn(s);
                     Method initScript = loadClass.getMethod("initScript");
-                    Object instance = loadClass.getConstructor().newInstance();
-                    initScript.invoke(instance);
-                    sb.append(s = "class [%s]initScript %n".formatted(className));
-                    log.warn(s);
+                    if (!initScriptClass.contains(className)) {
+                        Object instance = loadClass.getConstructor().newInstance();
+                        initScript.invoke(instance);
+                        sb.append(s = "class [%s]initScript %n".formatted(className));
+                        log.warn(s);
+                    }
                 } catch (Exception e) {
                     if (!(e instanceof NoSuchMethodException)) {
                         StringWriter out = new StringWriter();
