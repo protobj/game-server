@@ -34,6 +34,7 @@ public class JavassistUtil {
      */
     private static void attach() throws Exception {
         if (instrumentation == null) {
+            System.setProperty("jdk.attach.allowAttachSelf","true");
             final String pathname = "hotswap.jar";
             try {
                 final File file = new File(pathname);

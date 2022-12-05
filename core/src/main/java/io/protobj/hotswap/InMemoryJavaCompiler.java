@@ -65,7 +65,7 @@ public class InMemoryJavaCompiler {
 	 */
 	public Map<String, Class<?>> compileAll() throws Exception {
 		if (sourceCodes.size() == 0) {
-			throw new CompilationException("No source code to compile");
+			throw new RuntimeException("No source code to compile");
 		}
 		Collection<SourceCode> compilationUnits = sourceCodes.values();
 		CompiledCode[] code;
@@ -102,7 +102,7 @@ public class InMemoryJavaCompiler {
 				exceptionMsg.append(", ").append("message=").append(d.getMessage(Locale.US)).append("]");
 			}
 			if (hasWarnings && !ignoreWarnings || hasErrors) {
-				throw new CompilationException(exceptionMsg.toString());
+				throw new RuntimeException(exceptionMsg.toString());
 			}
 		}
 
@@ -141,5 +141,9 @@ public class InMemoryJavaCompiler {
 
 	public DynamicClassLoader getClassLoader() {
 		return classLoader;
+	}
+
+	public Map<String, SourceCode> getSourceCodes() {
+		return sourceCodes;
 	}
 }
