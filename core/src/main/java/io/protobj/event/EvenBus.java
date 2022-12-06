@@ -9,7 +9,7 @@ import java.util.concurrent.Executor;
 
 public interface EvenBus {
 
-    String SUBSCRIBER_PACKAGE = "service";
+
 
 
     void register(List<Module> moduleList, BeanContainer beanContainer);

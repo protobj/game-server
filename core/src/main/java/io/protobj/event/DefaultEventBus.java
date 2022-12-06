@@ -19,6 +19,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static io.protobj.ServerInstance.SERVICE_PACKAGE;
+
 public class DefaultEventBus implements EvenBus {
     private static final Logger log = LoggerFactory.getLogger(DefaultEventBus.class);
     private final Map<Class<? extends Event>, List<Subscriber>> subscriberMap = new HashMap<>();
@@ -28,7 +30,7 @@ public class DefaultEventBus implements EvenBus {
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
         configurationBuilder.addScanners(Scanners.MethodsAnnotated, Scanners.SubTypes);
         for (Module module : moduleList) {
-            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SUBSCRIBER_PACKAGE);
+            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SERVICE_PACKAGE);
         }
         Reflections reflections = new Reflections(configurationBuilder);
         //接口事件
