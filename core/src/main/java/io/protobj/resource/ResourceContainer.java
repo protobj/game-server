@@ -1,8 +1,7 @@
 package io.protobj.resource;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
-import com.alibaba.fastjson2.JSONObject;
+import com.jsoniter.JsonIterator;
+import com.jsoniter.any.Any;
 import io.protobj.resource.anno.Id;
 import io.protobj.resource.anno.Index;
 import io.protobj.resource.anno.Unique;
@@ -73,10 +72,9 @@ public class ResourceContainer<K, V> {
                       Map<String, Field> uniqueFields,
                       Map<String, Field> indexFields, Path path) throws Exception {
         String s = Files.readString(path);
-        JSONArray jsonArray = JSON.parseArray(s);
-        for (int i = 0; i < jsonArray.size(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
-            V v = jsonObject.to(resourceClass);
+        List<Any> anies = JsonIterator.deserialize(s).asList();
+        for (int i = 0; i < anies.size(); i++) {
+            V v = anies.get(i).as(resourceClass);
             final K k = (K) idField.get(v);
             if (resourceMap.containsKey(k)) {
                 throw new RuntimeException(String.format("资源 %s id 重复 %s", resourceClass.getSimpleName(), k.toString()));
