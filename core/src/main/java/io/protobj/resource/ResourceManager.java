@@ -4,6 +4,7 @@ import io.protobj.BeanContainer;
 import io.protobj.Module;
 import io.protobj.resource.anno.Id;
 import io.protobj.resource.anno.ResourceContainer;
+import io.protobj.resource.anno.Single;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -31,8 +32,8 @@ public class ResourceManager {
             configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SERVICE_PACKAGE);
         }
         Reflections reflections = new Reflections(configurationBuilder);
-        Set<Field> fieldsAnnotatedWith = reflections.getFieldsAnnotatedWith(ResourceContainer.class);
-        for (Field field : fieldsAnnotatedWith) {
+        Set<Field> resourceContainerAnno = reflections.getFieldsAnnotatedWith(ResourceContainer.class);
+        for (Field field : resourceContainerAnno) {
             Class<?> declaringClass = field.getDeclaringClass();
             ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
             Class idType = (Class) parameterizedType.getActualTypeArguments()[0];
@@ -50,7 +51,7 @@ public class ResourceManager {
                     throw new RuntimeException("id type error :%s->%s".formatted(idType.getSimpleName(), type.getSimpleName()));
                 }
                 Path path = Path.of(resourceConfig.getResourcePath(), resourceType.getSimpleName(), ".json");
-                resourceMap.put(resourceType, resourceContainer = new io.protobj.resource.ResourceContainer<>(resourceType).load(path));
+                resourceMap.put(resourceType, resourceContainer = new io.protobj.resource.ResourceContainer<>(resourceType).load(path,resourceConfig.getJson()));
             }
             if (!field.canAccess(bean)) {
                 field.setAccessible(true);
@@ -61,6 +62,7 @@ public class ResourceManager {
                 throw new RuntimeException(e);
             }
         }
+        Set<Field> singleFields = reflections.getFieldsAnnotatedWith(Single.class);
 
     }
 
@@ -75,5 +77,16 @@ public class ResourceManager {
             return true;
         }
         return false;
+    }
+
+    public static class SingleData<T> {
+        String key;
+        T data;
+        Field observerField;
+
+        public SingleData(String key,Field observerField) {
+            this.key = key;
+            this.observerField = observerField;
+        }
     }
 }

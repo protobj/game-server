@@ -8,7 +8,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Single {
-    Class<?> resource();
-    String id();
 
+    String file() default "";
+
+    String value() default "";
 }

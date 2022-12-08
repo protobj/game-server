@@ -1,7 +1,8 @@
 package io.protobj.resource;
 
-import com.jsoniter.JsonIterator;
-import com.jsoniter.any.Any;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.protobj.Json;
 import io.protobj.resource.anno.Id;
 import io.protobj.resource.anno.Index;
 import io.protobj.resource.anno.Unique;
@@ -38,7 +39,7 @@ public class ResourceContainer<K, V> {
         this.resourceClass = resourceClass;
     }
 
-    public ResourceContainer<K, V> load(Path path) {
+    public ResourceContainer<K, V> load(Path path, Json json) {
         try {
             Map<K, V> resourceMap = new HashMap<>();
             Map<String, Map<Object, List<V>>> indexResourceMap = new HashMap<>();
@@ -55,7 +56,7 @@ public class ResourceContainer<K, V> {
             indexFields.forEach((k, v) -> {
                 indexResourceMap.put(k, new HashMap<>());
             });
-            read(resourceMap, indexResourceMap, uniqueResourceMap, idField, uniqueFields, indexFields, path);
+            read(resourceMap, indexResourceMap, uniqueResourceMap, idField, uniqueFields, indexFields, path, json);
             this.resourceMap = resourceMap;
             this.indexResourceMap = indexResourceMap;
             this.uniqueResourceMap = uniqueResourceMap;
@@ -70,11 +71,12 @@ public class ResourceContainer<K, V> {
     private void read(Map<K, V> resourceMap, Map<String, Map<Object, List<V>>> indexResourceMap,
                       Map<String, Map<Object, V>> uniqueResourceMap, Field idField,
                       Map<String, Field> uniqueFields,
-                      Map<String, Field> indexFields, Path path) throws Exception {
+                      Map<String, Field> indexFields, Path path, Json json) throws Exception {
         String s = Files.readString(path);
-        List<Any> anies = JsonIterator.deserialize(s).asList();
+        List<V> anies = json.decode(s, new TypeReference<>() {
+        });
         for (int i = 0; i < anies.size(); i++) {
-            V v = anies.get(i).as(resourceClass);
+            V v = anies.get(i);
             final K k = (K) idField.get(v);
             if (resourceMap.containsKey(k)) {
                 throw new RuntimeException(String.format("资源 %s id 重复 %s", resourceClass.getSimpleName(), k.toString()));
