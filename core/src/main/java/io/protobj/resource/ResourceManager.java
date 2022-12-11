@@ -1,15 +1,18 @@
 package io.protobj.resource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.protobj.BeanContainer;
 import io.protobj.Module;
 import io.protobj.resource.anno.Id;
 import io.protobj.resource.anno.ResourceContainer;
 import io.protobj.resource.anno.Single;
+import org.apache.commons.lang3.StringUtils;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.reflections.util.ConfigurationBuilder;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.nio.file.Path;
@@ -22,8 +25,14 @@ import static io.protobj.ServerInstance.SERVICE_PACKAGE;
 
 public class ResourceManager {
 
-    private ResourceConfig resourceConfig;
-    private Map<Class<?>, io.protobj.resource.ResourceContainer<?, ?>> resourceMap = new HashMap<>();
+    private final ResourceConfig resourceConfig;
+    private final Map<Class<?>, io.protobj.resource.ResourceContainer<?, ?>> resourceMap = new HashMap<>();
+
+    private final Map<String, SingleValueRecord> recordMap = new HashMap<>();
+
+    public ResourceManager(ResourceConfig resourceConfig) {
+        this.resourceConfig = resourceConfig;
+    }
 
     public void loadResource(List<Module> moduleList, BeanContainer beanContainer, boolean reload) {
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
@@ -51,7 +60,9 @@ public class ResourceManager {
                     throw new RuntimeException("id type error :%s->%s".formatted(idType.getSimpleName(), type.getSimpleName()));
                 }
                 Path path = Path.of(resourceConfig.getResourcePath(), resourceType.getSimpleName(), ".json");
-                resourceMap.put(resourceType, resourceContainer = new io.protobj.resource.ResourceContainer<>(resourceType).load(path,resourceConfig.getJson()));
+                resourceMap.put(resourceType, resourceContainer = new io.protobj.resource.ResourceContainer<>(resourceType).load(path, resourceConfig.getJson()));
+            } else {
+
             }
             if (!field.canAccess(bean)) {
                 field.setAccessible(true);
@@ -63,7 +74,36 @@ public class ResourceManager {
             }
         }
         Set<Field> singleFields = reflections.getFieldsAnnotatedWith(Single.class);
-
+        for (Field singleField : singleFields) {
+            Single annotation = singleField.getAnnotation(Single.class);
+            if (StringUtils.isEmpty(annotation.file())) {
+                throw new RuntimeException("single:[%s:%s] file not set ".formatted(singleField.getDeclaringClass().getName(), singleField.getName()));
+            }
+            if (StringUtils.isEmpty(annotation.value())) {
+                throw new RuntimeException("single:[%s:%s] value not set ".formatted(singleField.getDeclaringClass().getName(), singleField.getName()));
+            }
+            SingleValueRecord singleValueRecord = new SingleValueRecord(annotation.file(), annotation.value(), singleField);
+            SingleValueRecord old = recordMap.get(singleValueRecord.getFullName());
+            if (old != null) {
+                throw new RuntimeException("single field  [%s:%s] is already set in [%s:%s]".formatted(singleField.getDeclaringClass().getName(), singleField.getName()
+                        , old.observerField.getDeclaringClass().getName(), old.observerField.getName()
+                ));
+            }
+            String file = annotation.file();
+            try {
+                Path of = Path.of(resourceConfig.getResourcePath(), file, "_single.json");
+                JsonNode jsonNode = resourceConfig.getJson().readTree(of.toFile());
+                Class<?> type = singleField.getType();
+                Object decode = resourceConfig.getJson().decode(jsonNode.toString(), type);
+                Object beanByType = beanContainer.getBeanByType(singleField.getDeclaringClass());
+                singleField.setAccessible(true);
+                singleField.set(beanByType, decode);
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private boolean validateIdType(Class<?> type, Class idType) {
@@ -79,14 +119,20 @@ public class ResourceManager {
         return false;
     }
 
-    public static class SingleData<T> {
-        String key;
-        T data;
+    public static class SingleValueRecord {
+        private String fileName;
+        private String key;
+        Object data;
         Field observerField;
 
-        public SingleData(String key,Field observerField) {
+        public SingleValueRecord(String fileName, String key, Field observerField) {
+            this.fileName = fileName;
             this.key = key;
             this.observerField = observerField;
+        }
+
+        public String getFullName() {
+            return fileName + "." + key;
         }
     }
 }
