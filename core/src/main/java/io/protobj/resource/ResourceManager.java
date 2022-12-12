@@ -1,10 +1,12 @@
 package io.protobj.resource;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import io.protobj.BeanContainer;
 import io.protobj.Module;
 import io.protobj.resource.anno.Id;
-import io.protobj.resource.anno.ResourceContainer;
+import io.protobj.resource.anno.Resource;
 import io.protobj.resource.anno.Single;
 import org.apache.commons.lang3.StringUtils;
 import org.reflections.ReflectionUtils;
@@ -13,8 +15,10 @@ import org.reflections.scanners.Scanners;
 import org.reflections.util.ConfigurationBuilder;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +32,7 @@ public class ResourceManager {
     private final ResourceConfig resourceConfig;
     private final Map<Class<?>, io.protobj.resource.ResourceContainer<?, ?>> resourceMap = new HashMap<>();
 
-    private final Map<String, SingleValueRecord> recordMap = new HashMap<>();
+    private final Table<String, String, SingleValue> singleValueTable = HashBasedTable.create();
 
     public ResourceManager(ResourceConfig resourceConfig) {
         this.resourceConfig = resourceConfig;
@@ -40,8 +44,9 @@ public class ResourceManager {
         for (Module module : moduleList) {
             configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SERVICE_PACKAGE);
         }
+
         Reflections reflections = new Reflections(configurationBuilder);
-        Set<Field> resourceContainerAnno = reflections.getFieldsAnnotatedWith(ResourceContainer.class);
+        Set<Field> resourceContainerAnno = reflections.getFieldsAnnotatedWith(Resource.class);
         for (Field field : resourceContainerAnno) {
             Class<?> declaringClass = field.getDeclaringClass();
             ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
@@ -74,6 +79,7 @@ public class ResourceManager {
             }
         }
         Set<Field> singleFields = reflections.getFieldsAnnotatedWith(Single.class);
+        Map<Path, JsonNode> jsonNodeMap = new HashMap<>();
         for (Field singleField : singleFields) {
             Single annotation = singleField.getAnnotation(Single.class);
             if (StringUtils.isEmpty(annotation.file())) {
@@ -82,27 +88,45 @@ public class ResourceManager {
             if (StringUtils.isEmpty(annotation.value())) {
                 throw new RuntimeException("single:[%s:%s] value not set ".formatted(singleField.getDeclaringClass().getName(), singleField.getName()));
             }
-            SingleValueRecord singleValueRecord = new SingleValueRecord(annotation.file(), annotation.value(), singleField);
-            SingleValueRecord old = recordMap.get(singleValueRecord.getFullName());
-            if (old != null) {
-                throw new RuntimeException("single field  [%s:%s] is already set in [%s:%s]".formatted(singleField.getDeclaringClass().getName(), singleField.getName()
-                        , old.observerField.getDeclaringClass().getName(), old.observerField.getName()
-                ));
+            SingleValue singleValue = singleValueTable.get(annotation.file(), annotation.value());
+            if (singleValue == null) {
+                Type valueType;
+                try {
+                    ParameterizedType genericType = (ParameterizedType) singleField.getGenericType();
+                    valueType = genericType.getActualTypeArguments()[0];
+                } catch (Throwable e) {
+                    Class<?> type = singleField.getType();
+                    Field field = ReflectionUtils.getFields(type, it -> it.getName().equals("value")).stream().toList().get(0);
+                    valueType = field.getGenericType();
+                }
+                try {
+                    Class<?> type = singleField.getType();
+                    Constructor<?> constructor = type.getConstructor(Type.class);
+                    SingleValue o = (SingleValue) constructor.newInstance(valueType);
+                    singleValueTable.put(annotation.file(), annotation.value(), singleValue = o);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-            String file = annotation.file();
+
+            Path of = Path.of(resourceConfig.getResourcePath(), annotation.file(), "_single.json");
+            JsonNode jsonNode = jsonNodeMap.computeIfAbsent(of, path -> {
+                try {
+                    return resourceConfig.getJson().readTree(of.toFile());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            singleValue.setSource(annotation.file() + "." + annotation.value(), jsonNode.toString(), resourceConfig.getJson());
+            singleField.setAccessible(true);
+            Object beanByType = beanContainer.getBeanByType(singleField.getDeclaringClass());
             try {
-                Path of = Path.of(resourceConfig.getResourcePath(), file, "_single.json");
-                JsonNode jsonNode = resourceConfig.getJson().readTree(of.toFile());
-                Class<?> type = singleField.getType();
-                Object decode = resourceConfig.getJson().decode(jsonNode.toString(), type);
-                Object beanByType = beanContainer.getBeanByType(singleField.getDeclaringClass());
-                singleField.setAccessible(true);
-                singleField.set(beanByType, decode);
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
+                singleField.set(beanByType, singleValue);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
+
         }
     }
 
@@ -117,22 +141,5 @@ public class ResourceManager {
             return true;
         }
         return false;
-    }
-
-    public static class SingleValueRecord {
-        private String fileName;
-        private String key;
-        Object data;
-        Field observerField;
-
-        public SingleValueRecord(String fileName, String key, Field observerField) {
-            this.fileName = fileName;
-            this.key = key;
-            this.observerField = observerField;
-        }
-
-        public String getFullName() {
-            return fileName + "." + key;
-        }
     }
 }

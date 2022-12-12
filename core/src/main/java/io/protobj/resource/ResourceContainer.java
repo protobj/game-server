@@ -1,7 +1,6 @@
 package io.protobj.resource;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.protobj.Json;
 import io.protobj.resource.anno.Id;
 import io.protobj.resource.anno.Index;
