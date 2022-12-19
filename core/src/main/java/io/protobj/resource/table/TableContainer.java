@@ -1,23 +1,19 @@
-package io.protobj.resource;
+package io.protobj.resource.table;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.protobj.Json;
-import io.protobj.resource.anno.Id;
-import io.protobj.resource.anno.Index;
-import io.protobj.resource.anno.Unique;
 import io.protobj.util.CollectionUtil;
 import org.reflections.ReflectionUtils;
 
 import java.lang.reflect.Field;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class ResourceContainer<K, V> {
+import static io.protobj.util.ReflectUtil.makeAccessible;
+import static io.protobj.util.ReflectUtil.newInstance;
+
+public class TableContainer<K, V> {
     private final Class<V> resourceClass;
 
     private long lastModified;
@@ -25,33 +21,34 @@ public class ResourceContainer<K, V> {
     private volatile Map<K, V> resourceMap;
 
     /**
-     * {@link io.protobj.resource.anno.Index}
+     * {@link Index}
      */
     private volatile Map<String, Map<Object, List<V>>> indexResourceMap;
     /**
-     * {@link io.protobj.resource.anno.Unique}
+     * {@link Unique}
      */
     private volatile Map<String, Map<Object, V>> uniqueResourceMap;
 
 
-    public ResourceContainer(Class<V> resourceClass) {
+    public TableContainer(Class<V> resourceClass) {
         this.resourceClass = resourceClass;
     }
 
-    public ResourceContainer<K, V> load(Path path, Json json) {
+    public synchronized TableContainer<K, V> load(Path path, Json json) {
         try {
             Map<K, V> resourceMap = new HashMap<>();
             Map<String, Map<Object, List<V>>> indexResourceMap = new HashMap<>();
             Map<String, Map<Object, V>> uniqueResourceMap = new HashMap<>();
 
             Field idField = ReflectionUtils.getFields(resourceClass, it -> it.getAnnotation(Id.class) != null).iterator().next();
+            idField.setAccessible(true);
             Map<String, Field> uniqueFields = ReflectionUtils.getFields(resourceClass, it -> it.getAnnotation(Unique.class) != null)
-                    .stream().collect(Collectors.toMap(t -> t.getAnnotation(Unique.class).value(), t -> t));
+                    .stream().collect(Collectors.toMap(Field::getName, t -> t));
             uniqueFields.forEach((k, v) -> {
                 uniqueResourceMap.put(k, new HashMap<>());
             });
             Map<String, Field> indexFields = ReflectionUtils.getFields(resourceClass, it -> it.getAnnotation(Index.class) != null)
-                    .stream().collect(Collectors.toMap(t -> t.getAnnotation(Index.class).value(), t -> t));
+                    .stream().collect(Collectors.toMap(Field::getName, t -> t));
             indexFields.forEach((k, v) -> {
                 indexResourceMap.put(k, new HashMap<>());
             });
@@ -61,21 +58,19 @@ public class ResourceContainer<K, V> {
             this.uniqueResourceMap = uniqueResourceMap;
         } catch (Exception e) {
             throw new RuntimeException(String.format(
-                    "resource [%s] not found", resourceClass.getSimpleName()), e);
+                    "resource [%s] ", resourceClass.getSimpleName()), e);
         }
         return this;
     }
-
 
     private void read(Map<K, V> resourceMap, Map<String, Map<Object, List<V>>> indexResourceMap,
                       Map<String, Map<Object, V>> uniqueResourceMap, Field idField,
                       Map<String, Field> uniqueFields,
                       Map<String, Field> indexFields, Path path, Json json) throws Exception {
-        String s = Files.readString(path);
-        List<V> anies = json.decode(s, new TypeReference<>() {
-        });
-        for (int i = 0; i < anies.size(); i++) {
-            V v = anies.get(i);
+        JsonNode jsonNode = json.readTree(path.toFile());
+        for (int i = 0; i < jsonNode.size(); i++) {
+            JsonNode obj = jsonNode.get(i);
+            V v = readObj(obj, json);
             final K k = (K) idField.get(v);
             if (resourceMap.containsKey(k)) {
                 throw new RuntimeException(String.format("资源 %s id 重复 %s", resourceClass.getSimpleName(), k.toString()));
@@ -102,8 +97,52 @@ public class ResourceContainer<K, V> {
         this.lastModified = path.toFile().lastModified();
     }
 
+    private V readObj(JsonNode obj, Json json) {
+        try {
+            V v = newInstance(resourceClass);
+            Iterator<Map.Entry<String, JsonNode>> fields = obj.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                Field field = makeAccessible(resourceClass.getDeclaredField(entry.getKey()));
+                Dependency annotation = field.getAnnotation(Dependency.class);
+                JsonNode entryValue = entry.getValue();
+                if (annotation == null) {
+                    field.set(v, json.decode(entryValue.toString(), field.getType()));
+                } else {
+                    field.set(v, parseValue(annotation, field, entryValue, json));
+                }
+            }
+            return v;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    public V getResource(K id, boolean silence) {
+    private Object parseValue(Dependency annotation, Field field, JsonNode entryValue, Json json) {
+        Class<?> type = field.getType();
+        String by = annotation.by();
+        if (IResource.class.isAssignableFrom(type)) {
+            Field next;
+            try {
+                if (by.equals("@Id")) {
+                    next = ReflectionUtils.getAllFields(type, it -> it.isAnnotationPresent(Id.class)).iterator().next();
+                } else {
+                    next = ReflectionUtils.getAllFields(type, it -> it.getName().equals(by)).iterator().next();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("field not exists:%s".formatted(by));
+            }
+            Object tempFieldValue = newInstance(type);
+            try {
+                next.set(tempFieldValue, json.decode(entryValue.toString(), next.getType()));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        throw new UnsupportedOperationException("type:%s".formatted(type.getName()));
+    }
+
+    public V getResource(Object id, boolean silence) {
         return Optional.ofNullable(resourceMap.get(id)).orElseThrow(() -> {
             if (!silence) {
                 return new RuntimeException(String.format(
@@ -139,5 +178,13 @@ public class ResourceContainer<K, V> {
 
     public long getLastModified() {
         return lastModified;
+    }
+
+    public Class<V> getResourceClass() {
+        return resourceClass;
+    }
+
+    public Collection<V> values() {
+        return resourceMap.values();
     }
 }

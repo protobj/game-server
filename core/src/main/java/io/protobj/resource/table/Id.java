@@ -1,4 +1,4 @@
-package io.protobj.resource.anno;
+package io.protobj.resource.table;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

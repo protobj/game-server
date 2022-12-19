@@ -17,7 +17,6 @@ public class FileUtil {
             Files.walkFileTree(Paths.get(dir), new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    final File e = file.toFile();
                     if (predicate.test(file)) {
                         files.add(file);
                     }

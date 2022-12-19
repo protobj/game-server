@@ -1,4 +1,4 @@
-package io.protobj.resource;
+package io.protobj.resource.single;
 
 import io.protobj.Json;
 
