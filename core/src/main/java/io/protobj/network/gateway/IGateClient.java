@@ -6,11 +6,11 @@ import io.netty.util.AttributeKey;
 import java.util.concurrent.CompletableFuture;
 
 public interface IGateClient {
-
+    AttributeKey<Integer> SID = AttributeKey.newInstance("sid");
     AttributeKey<CompletableFuture<Channel>> CONNECT_FUTURE = AttributeKey.newInstance("CONNECT_FUTURE");
 
     CompletableFuture<Channel> startTcpFrontClient(String host, int port);
 
-    CompletableFuture<Channel> startTcpBackendClient(String host, int port);
+    CompletableFuture<Channel> startTcpBackendClient(String host, int port, int sid);
 }
 

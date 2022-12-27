@@ -5,8 +5,11 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
+import io.netty.channel.Channel;
 import io.protobj.hotswap.HotSwapConfig;
 import io.protobj.hotswap.HotSwapManger;
+import io.protobj.network.gateway.NettyGateClient;
+import io.protobj.network.gateway.NettyGateServer;
 import io.protobj.resource.table.Id;
 import io.protobj.resource.table.TableContainer;
 import io.protobj.resource.table.Unique;
@@ -17,6 +20,7 @@ import java.lang.reflect.Type;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 
 public class TestMain {
     public static void main(String[] args) throws Exception, IllegalAccessException, UnknownHostException {
@@ -36,16 +40,35 @@ public class TestMain {
 ////            }
 ////        }, 0, 2000);
 
+//
+//        Path path = Paths.get("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource_single.json");
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        JsonNode jsonNode = objectMapper.readTree(path.toFile());
+//        JsonNode path1 = jsonNode.path("0.hp");
+//        System.err.println(path1.toString());
+//        TableContainer<Integer, TestResource> tableContainer = new TableContainer<>(TestResource.class);
+//        JackSonImpl jackSon = new JackSonImpl();
+//        TableContainer<Integer, TestResource> load = tableContainer.load(Path.of("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource.json"), jackSon);
+//        System.err.println();
 
-        Path path = Paths.get("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource_single.json");
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(path.toFile());
-        JsonNode path1 = jsonNode.path("0.hp");
-        System.err.println(path1.toString());
-        TableContainer<Integer, TestResource> tableContainer = new TableContainer<>(TestResource.class);
-        JackSonImpl jackSon = new JackSonImpl();
-        TableContainer<Integer, TestResource> load = tableContainer.load(Path.of("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource.json"), jackSon);
-        System.err.println();
+
+        NettyGateServer nettyGateServer = new NettyGateServer(1);
+
+        String localhost = "localhost";
+        int port = 9999;
+        CompletableFuture<Void> gate = nettyGateServer.startTcpBackendServer(localhost, port);
+        gate.whenCompleteAsync((r, e) -> {
+            if (e != null) {
+                e.printStackTrace();
+            } else {
+                System.err.printf("gate backend[tcp] start in %s:%d%n", localhost, port);
+            }
+        }).join();
+
+        NettyGateClient nettyGateClient = new NettyGateClient(1);
+        CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
+        Channel join = client.join();
+        Thread.sleep(10000000);
 
     }
 

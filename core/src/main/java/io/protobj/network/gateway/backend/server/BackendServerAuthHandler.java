@@ -8,7 +8,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.protobj.network.gateway.NettyGateServer;
 import io.protobj.network.gateway.backend.BackendCommand;
 import io.protobj.network.gateway.front.FrontCommand;
-import io.protobj.network.gateway.front.FrontErrorCode;
+import io.protobj.network.gateway.ErrorCode;
 
 import static io.protobj.network.gateway.IGatewayServer.*;
 
@@ -28,15 +28,15 @@ public class BackendServerAuthHandler extends ChannelInboundHandlerAdapter {
         byte b = buf.readByte();
         Channel channel = ctx.channel();
         if (b != BackendCommand.Handshake.getCommand()) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.NOT_AUTH));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
         int sid = buf.readInt();
 
-        ByteBuf buffer = channel.alloc().buffer(5);
+        ByteBuf buffer = channel.alloc().buffer(3);
         buffer.writeShort(1);
         buffer.writeByte(FrontCommand.Handshake.getCommand());//连接成功
-        channel.writeAndFlush(buf);
+        channel.writeAndFlush(buffer);
         channel.pipeline().remove(this);
         BackendServerCache backendServerCache = nettyGateServer.getBackendCache();
         BackendServerSession session = backendServerCache.putSession(sid, ctx.channel());

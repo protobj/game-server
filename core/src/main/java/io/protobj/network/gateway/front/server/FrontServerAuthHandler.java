@@ -7,7 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.protobj.network.gateway.NettyGateServer;
 import io.protobj.network.gateway.front.FrontCommand;
-import io.protobj.network.gateway.front.FrontErrorCode;
+import io.protobj.network.gateway.ErrorCode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -45,23 +45,23 @@ public class FrontServerAuthHandler extends ChannelInboundHandlerAdapter {
         byte b = buf.readByte();
         Channel channel = ctx.channel();
         if (b != FrontCommand.Handshake.getCommand()) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.NOT_AUTH));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
         byte[] s = channel.attr(TOKEN).get();
         if (s == null) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.UNKNOWN));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.UNKNOWN));
             return;
         }
         int sid = buf.readInt();
         byte[] tokenBytes = new byte[6];
         buf.readBytes(tokenBytes);
         if (!Arrays.equals(tokenBytes, s)) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.ERR_TOKEN));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.ERR_TOKEN));
             return;
         }
         if (!CollectionUtils.isNotEmpty(nettyGateServer.getBackendCache().getServerSession(sid))) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.SERVER_NOT_ONLINE));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.SERVER_NOT_ONLINE));
             return;
         }
 

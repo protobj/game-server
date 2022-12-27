@@ -39,8 +39,8 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
         } else if (cmd == BackendCommand.Broadcast.getCommand()) {
             broadcast(ctx, buf, session);
         } else if (cmd == BackendCommand.Heartbeat.getCommand()) {
-            buf = ctx.channel().alloc().buffer(5);
-            buf.writeInt(1);
+            buf = ctx.channel().alloc().buffer(3);
+            buf.writeShort(1);
             buf.writeByte(cmd);
             ctx.channel().writeAndFlush(buf);
         } else {
@@ -138,12 +138,14 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
             ByteBuf buffer = ctx.alloc().buffer(5);
             buffer.writeInt(1);
             buffer.writeByte(FrontCommand.Close.getCommand());
-            for (FrontServerSession value : sessions.values()) {
-                ChannelFuture channelFuture = value.getChannel().writeAndFlush(buffer.retain());
-                if (!onClose) {
-                    channelFuture.addListener((ChannelFutureListener) future -> {
-                        value.getChannel().close();
-                    });
+            if (sessions != null) {
+                for (FrontServerSession value : sessions.values()) {
+                    ChannelFuture channelFuture = value.getChannel().writeAndFlush(buffer.retain());
+                    if (!onClose) {
+                        channelFuture.addListener((ChannelFutureListener) future -> {
+                            value.getChannel().close();
+                        });
+                    }
                 }
             }
         }

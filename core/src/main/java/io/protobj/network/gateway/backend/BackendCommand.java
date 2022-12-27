@@ -12,7 +12,7 @@ public enum BackendCommand {
     Close(7),//连接关闭
     ;
 
-    private byte command;
+    private final byte command;
 
     BackendCommand(int command) {
         this.command = (byte) command;

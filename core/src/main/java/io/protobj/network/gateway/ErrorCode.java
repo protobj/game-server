@@ -1,9 +1,10 @@
-package io.protobj.network.gateway.front;
+package io.protobj.network.gateway;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.protobj.network.gateway.front.FrontCommand;
 
-public class FrontErrorCode {
+public class ErrorCode {
 
     public static byte UNKNOWN = 1;
     public static byte NOT_AUTH = 2;

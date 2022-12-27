@@ -8,12 +8,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.AttributeKey;
 import io.protobj.network.gateway.backend.client.BackendClientAuthHandler;
 import io.protobj.network.gateway.backend.client.BackendClientMsgHandler;
 
 import java.util.concurrent.CompletableFuture;
 
 public class NettyGateClient implements IGateClient {
+
 
     private final NioEventLoopGroup workerGroup;
 
@@ -28,17 +30,15 @@ public class NettyGateClient implements IGateClient {
 
     @Override
     public CompletableFuture<Channel> startTcpFrontClient(String host, int port) {
-
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public CompletableFuture<Channel> startTcpBackendClient(String host, int port) {
+    public CompletableFuture<Channel> startTcpBackendClient(String host, int port, int sid) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(workerGroup);
         CompletableFuture<Channel> connectFuture = new CompletableFuture<>();
         bootstrap.channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, 1024)//
                 .option(ChannelOption.TCP_NODELAY, true)//
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .option(ChannelOption.ALLOCATOR, new PooledByteBufAllocator(false))//
@@ -46,8 +46,9 @@ public class NettyGateClient implements IGateClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
+                        ch.attr(SID).set(sid);
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2,0,2));
                         ch.pipeline().addLast(backendClientAuthHandler);
                         ch.pipeline().addLast(backendClientMsgHandler);
                         ch.attr(CONNECT_FUTURE).set(connectFuture);

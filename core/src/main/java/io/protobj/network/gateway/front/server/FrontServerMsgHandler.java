@@ -11,7 +11,7 @@ import io.protobj.network.gateway.backend.BackendCommand;
 import io.protobj.network.gateway.backend.server.BackendServerCache;
 import io.protobj.network.gateway.backend.server.BackendServerSession;
 import io.protobj.network.gateway.front.FrontCommand;
-import io.protobj.network.gateway.front.FrontErrorCode;
+import io.protobj.network.gateway.ErrorCode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 
@@ -42,7 +42,7 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         } else if (cmd == FrontCommand.Close.getCommand()) {
             close(ctx);
         } else {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.ERR_COMMAND));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.ERR_COMMAND));
         }
 
     }
@@ -76,13 +76,13 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
     private void forward(ChannelHandlerContext ctx, ByteBuf buf, Channel channel) {
         FrontServerSession frontServerSession = channel.attr(FRONT_SESSION).get();
         if (frontServerSession == null) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.NOT_AUTH));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
         BackendServerCache backendServerCache = nettyGateServer.getBackendCache();
         List<BackendServerSession> serverSession = backendServerCache.getServerSession(frontServerSession.getSid());
         if (CollectionUtils.isEmpty(serverSession)) {
-            channel.writeAndFlush(FrontErrorCode.createErrorMsg(channel, FrontErrorCode.SERVER_NOT_ONLINE));
+            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.SERVER_NOT_ONLINE));
             return;
         }
         ByteBuf buffer = ctx.alloc().buffer(7);
