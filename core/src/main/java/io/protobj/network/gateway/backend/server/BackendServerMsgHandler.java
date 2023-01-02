@@ -30,7 +30,6 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte cmd = buf.readByte();
         Channel channel = ctx.channel();
-        System.err.println("BackendServerMsgHandler " + channel);
         BackendServerSession session = channel.attr(BACKEND_SESSION).get();
         Command command = Command.valueOf(cmd);
         if (command == null) {
@@ -41,20 +40,23 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
             case Unicast -> unicast(ctx, buf, session);
             case Multicast -> multicast(ctx, buf, session);
             case Broadcast -> broadcast(ctx, buf, session);
-            case Heartbeat -> {
-                buf = ctx.channel().alloc().buffer(3);
-                buf.writeShort(1);
-                buf.writeByte(cmd);
-                ctx.channel().writeAndFlush(buf);
-            }
-            case ERR -> {
-                byte b = buf.readByte();
-                ctx.fireExceptionCaught(new Exception("error code from %s %d".formatted(channel, b)));
-            }
-            default -> {
-                ctx.fireExceptionCaught(new UnsupportedOperationException("error cmd for backend %d".formatted(cmd)));
-            }
+            case Heartbeat -> heartbeat(ctx, cmd);
+            case ERR -> err(ctx, buf, channel);
+            default ->
+                    ctx.fireExceptionCaught(new UnsupportedOperationException("error cmd for backend %s".formatted(command)));
         }
+    }
+
+    private static void err(ChannelHandlerContext ctx, ByteBuf buf, Channel channel) {
+        byte b = buf.readByte();
+        ctx.fireExceptionCaught(new Exception("error code from %s %d".formatted(channel, b)));
+    }
+
+    private void heartbeat(ChannelHandlerContext ctx, byte cmd) {
+        ByteBuf buffer = ctx.channel().alloc().buffer(3);
+        buffer.writeShort(1);
+        buffer.writeByte(cmd);
+        ctx.channel().writeAndFlush(buffer);
     }
 
     private void multicast(ChannelHandlerContext ctx, ByteBuf buf, BackendServerSession session) {

@@ -30,7 +30,6 @@ public class BackendServerAuthHandler extends ChannelInboundHandlerAdapter {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
-        System.err.println("BackendServerAuthHandler " + channel);
         int sid = buf.readInt();
 
         ByteBuf buffer = channel.alloc().buffer(3);

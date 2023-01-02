@@ -27,7 +27,6 @@ public class BackendClientAuthHandler extends ChannelInboundHandlerAdapter {
         buffer.writeByte(Command.Handshake.getCommand());
         buffer.writeInt(sid);
         channel.writeAndFlush(buffer);
-        System.err.println("BackendClientAuthHandler channelActive " + channel);
     }
 
     @Override
@@ -36,7 +35,6 @@ public class BackendClientAuthHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte b = buf.readByte();
         Channel channel = ctx.channel();
-        System.err.println("BackendClientAuthHandler channelRead " + channel);
         if (b != Command.Handshake.getCommand()) {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
