@@ -5,8 +5,7 @@ import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.protobj.network.gateway.NettyGateServer;
-import io.protobj.network.gateway.backend.BackendCommand;
-import io.protobj.network.gateway.front.FrontCommand;
+import io.protobj.network.Command;
 import io.protobj.network.gateway.front.server.FrontServerCache;
 import io.protobj.network.gateway.front.server.FrontServerSession;
 
@@ -31,20 +30,30 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte cmd = buf.readByte();
         Channel channel = ctx.channel();
+        System.err.println("BackendServerMsgHandler " + channel);
         BackendServerSession session = channel.attr(BACKEND_SESSION).get();
-        if (cmd == BackendCommand.Unicast.getCommand()) {
-            if (unicast(ctx, buf, session)) return;
-        } else if (cmd == BackendCommand.Multicast.getCommand()) {
-            multicast(ctx, buf, session);
-        } else if (cmd == BackendCommand.Broadcast.getCommand()) {
-            broadcast(ctx, buf, session);
-        } else if (cmd == BackendCommand.Heartbeat.getCommand()) {
-            buf = ctx.channel().alloc().buffer(3);
-            buf.writeShort(1);
-            buf.writeByte(cmd);
-            ctx.channel().writeAndFlush(buf);
-        } else {
+        Command command = Command.valueOf(cmd);
+        if (command == null) {
             ctx.fireExceptionCaught(new UnsupportedOperationException("error cmd for backend %d".formatted(cmd)));
+            return;
+        }
+        switch (command) {
+            case Unicast -> unicast(ctx, buf, session);
+            case Multicast -> multicast(ctx, buf, session);
+            case Broadcast -> broadcast(ctx, buf, session);
+            case Heartbeat -> {
+                buf = ctx.channel().alloc().buffer(3);
+                buf.writeShort(1);
+                buf.writeByte(cmd);
+                ctx.channel().writeAndFlush(buf);
+            }
+            case ERR -> {
+                byte b = buf.readByte();
+                ctx.fireExceptionCaught(new Exception("error code from %s %d".formatted(channel, b)));
+            }
+            default -> {
+                ctx.fireExceptionCaught(new UnsupportedOperationException("error cmd for backend %d".formatted(cmd)));
+            }
         }
     }
 
@@ -87,7 +96,7 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
     private void multiSend(ChannelHandlerContext ctx, ByteBuf buf, Collection<FrontServerSession> sessions) {
         ByteBuf buffer = ctx.alloc().buffer(5);
         buffer.writeInt(1 + buf.readableBytes());
-        buffer.writeByte(FrontCommand.Forward.getCommand());
+        buffer.writeByte(Command.Forward.getCommand());
         CompositeByteBuf byteBufs = ctx.alloc().compositeBuffer(2);
         byteBufs.addComponent(buffer);
         byteBufs.addComponent(buf);
@@ -110,7 +119,7 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
         Channel frontSessionChannel = frontServerSession.getChannel();
         ByteBuf buffer = frontSessionChannel.alloc().buffer(5);
         buffer.writeInt(1 + buf.readableBytes());
-        buffer.writeByte(FrontCommand.Forward.getCommand());
+        buffer.writeByte(Command.Forward.getCommand());
         frontSessionChannel.write(buffer);
         frontSessionChannel.writeAndFlush(buf);
         return false;
@@ -137,7 +146,7 @@ public class BackendServerMsgHandler extends ChannelInboundHandlerAdapter {
             Map<Integer, FrontServerSession> sessions = frontServerCache.removeSessions(sid);
             ByteBuf buffer = ctx.alloc().buffer(5);
             buffer.writeInt(1);
-            buffer.writeByte(FrontCommand.Close.getCommand());
+            buffer.writeByte(Command.Close.getCommand());
             if (sessions != null) {
                 for (FrontServerSession value : sessions.values()) {
                     ChannelFuture channelFuture = value.getChannel().writeAndFlush(buffer.retain());

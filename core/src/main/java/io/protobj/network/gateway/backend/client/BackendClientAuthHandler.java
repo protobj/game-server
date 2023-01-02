@@ -6,9 +6,9 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.Attribute;
+import io.protobj.network.Command;
 import io.protobj.network.gateway.ErrorCode;
 import io.protobj.network.gateway.IGateClient;
-import io.protobj.network.gateway.backend.BackendCommand;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -24,9 +24,10 @@ public class BackendClientAuthHandler extends ChannelInboundHandlerAdapter {
 
         ByteBuf buffer = channel.alloc().buffer(7);
         buffer.writeShort(1 + 4);
-        buffer.writeByte(BackendCommand.Handshake.getCommand());
+        buffer.writeByte(Command.Handshake.getCommand());
         buffer.writeInt(sid);
         channel.writeAndFlush(buffer);
+        System.err.println("BackendClientAuthHandler channelActive " + channel);
     }
 
     @Override
@@ -35,7 +36,8 @@ public class BackendClientAuthHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte b = buf.readByte();
         Channel channel = ctx.channel();
-        if (b != BackendCommand.Handshake.getCommand()) {
+        System.err.println("BackendClientAuthHandler channelRead " + channel);
+        if (b != Command.Handshake.getCommand()) {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
@@ -48,6 +50,5 @@ public class BackendClientAuthHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         CompletableFuture<Channel> future = ctx.channel().attr(IGateClient.CONNECT_FUTURE).get();
         future.completeExceptionally(cause);
-        super.exceptionCaught(ctx, cause);
     }
 }

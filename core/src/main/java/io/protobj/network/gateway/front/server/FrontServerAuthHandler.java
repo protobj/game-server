@@ -6,8 +6,8 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.protobj.network.gateway.NettyGateServer;
-import io.protobj.network.gateway.front.FrontCommand;
 import io.protobj.network.gateway.ErrorCode;
+import io.protobj.network.Command;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -34,7 +34,7 @@ public class FrontServerAuthHandler extends ChannelInboundHandlerAdapter {
         channel.attr(TOKEN).set(token);
         ByteBuf buffer = channel.alloc().buffer(9);
         buffer.writeShort(7);
-        buffer.writeByte(FrontCommand.Handshake.getCommand());//1
+        buffer.writeByte(Command.Handshake.getCommand());//1
         buffer.writeBytes(token);//6
         super.channelActive(ctx);
     }
@@ -44,7 +44,7 @@ public class FrontServerAuthHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte b = buf.readByte();
         Channel channel = ctx.channel();
-        if (b != FrontCommand.Handshake.getCommand()) {
+        if (b != Command.Handshake.getCommand()) {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.NOT_AUTH));
             return;
         }
@@ -67,7 +67,7 @@ public class FrontServerAuthHandler extends ChannelInboundHandlerAdapter {
 
         ByteBuf buffer = channel.alloc().buffer(3);
         buffer.writeShort(1);
-        buffer.writeByte(FrontCommand.Handshake.getCommand());//连接成功
+        buffer.writeByte(Command.Handshake.getCommand());//连接成功
         channel.writeAndFlush(buf);
         channel.pipeline().remove(this);
         FrontServerCache frontServerCache = nettyGateServer.getFrontCache();

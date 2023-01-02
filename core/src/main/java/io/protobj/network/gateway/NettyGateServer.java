@@ -96,7 +96,7 @@ public class NettyGateServer implements IGatewayServer {
 
     @Override
     public CompletableFuture<Void> startWebsocketFrontServer(String host, int... ports) {
-        ServerBootstrap serverBootstrap = new ServerBootstrap();
+        /*ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(bossGroup, workerGroup);
         serverBootstrap.channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 1024)//
@@ -136,8 +136,9 @@ public class NettyGateServer implements IGatewayServer {
                 }
             });
         }
-        return CompletableFuture.allOf(of.toArray(new CompletableFuture[0]));
+        return CompletableFuture.allOf(of.toArray(new CompletableFuture[0]));*/
 
+        return null;
     }
 
     @Override
@@ -156,7 +157,7 @@ public class NettyGateServer implements IGatewayServer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2,0,2));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2, 0, 2));
                         ch.pipeline().addLast(backendServerAuthHandler);
                         ch.pipeline().addLast(backendServerMsgHandler);
                     }

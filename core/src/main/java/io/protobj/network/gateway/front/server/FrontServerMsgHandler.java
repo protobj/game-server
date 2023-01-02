@@ -7,10 +7,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.protobj.network.gateway.NettyGateServer;
-import io.protobj.network.gateway.backend.BackendCommand;
+import io.protobj.network.Command;
 import io.protobj.network.gateway.backend.server.BackendServerCache;
 import io.protobj.network.gateway.backend.server.BackendServerSession;
-import io.protobj.network.gateway.front.FrontCommand;
 import io.protobj.network.gateway.ErrorCode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -35,11 +34,12 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         ByteBuf buf = (ByteBuf) msg;
         byte cmd = buf.readByte();
         Channel channel = ctx.channel();
-        if (cmd == FrontCommand.Heartbeat.getCommand()) {
+        Command command = Command.valueOf(cmd);
+        if (cmd == Command.Heartbeat.getCommand()) {
             heartbeat(ctx, cmd);
-        } else if (cmd == FrontCommand.Forward.getCommand()) {
+        } else if (cmd == Command.Forward.getCommand()) {
             forward(ctx, buf, channel);
-        } else if (cmd == FrontCommand.Close.getCommand()) {
+        } else if (cmd == Command.Close.getCommand()) {
             close(ctx);
         } else {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.ERR_COMMAND));
@@ -56,7 +56,7 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         }
         ByteBuf buffer = ctx.alloc().buffer(7);
         buffer.writeShort(5);
-        buffer.writeByte(BackendCommand.Forward.getCommand());//转发消息
+        buffer.writeByte(Command.Forward.getCommand());//转发消息
         buffer.writeInt(frontServerSession.getId());
         Channel serverChannel = serverSession.get(RandomUtils.nextInt(0, serverSession.size())).getChannel();
         serverChannel.writeAndFlush(buffer);
@@ -87,7 +87,7 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         }
         ByteBuf buffer = ctx.alloc().buffer(7);
         buffer.writeShort(5 + buf.readableBytes());
-        buffer.writeByte(BackendCommand.Forward.getCommand());//转发消息
+        buffer.writeByte(Command.Forward.getCommand());//转发消息
         buffer.writeInt(frontServerSession.getId());
         Channel serverChannel = serverSession.get(RandomUtils.nextInt(0, serverSession.size())).getChannel();
         serverChannel.write(buffer);

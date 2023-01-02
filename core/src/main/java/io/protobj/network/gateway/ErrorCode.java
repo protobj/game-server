@@ -2,7 +2,7 @@ package io.protobj.network.gateway;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.protobj.network.gateway.front.FrontCommand;
+import io.protobj.network.Command;
 
 public class ErrorCode {
 
@@ -16,7 +16,7 @@ public class ErrorCode {
     public static ByteBuf createErrorMsg(Channel channel, byte code) {
         ByteBuf buffer = channel.alloc().buffer(4);
         buffer.writeShort(2);
-        buffer.writeByte(FrontCommand.ERR.getCommand());
+        buffer.writeByte(Command.ERR.getCommand());
         buffer.writeByte(code);
         return buffer;
     }

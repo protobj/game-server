@@ -67,7 +67,6 @@ public class TestMain {
 
         NettyGateClient nettyGateClient = new NettyGateClient(1);
         CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
-        Channel join = client.join();
         Thread.sleep(10000000);
 
     }
