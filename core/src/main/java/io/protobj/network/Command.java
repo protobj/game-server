@@ -21,7 +21,7 @@ public enum Command {
     public static Command valueOf(byte cmd) {
         Command[] values = values();
         if (cmd <= 0 || cmd >= values.length) {
-            return null;
+            return Command.Null;
         }
         return values[cmd];
     }

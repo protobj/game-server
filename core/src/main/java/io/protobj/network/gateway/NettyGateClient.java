@@ -11,6 +11,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.protobj.network.gateway.backend.client.BackendClientAuthHandler;
 import io.protobj.network.gateway.backend.client.BackendClientMsgHandler;
+import io.protobj.network.gateway.backend.client.session.SessionCache;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -22,10 +23,10 @@ public class NettyGateClient implements IGateClient {
     private final BackendClientAuthHandler backendClientAuthHandler;
     private final BackendClientMsgHandler backendClientMsgHandler;
 
-    public NettyGateClient(int clientSize) {
+    public NettyGateClient(int clientSize, SessionCache sessionCache) {
         this.workerGroup = new NioEventLoopGroup(clientSize);
         backendClientAuthHandler = new BackendClientAuthHandler();
-        backendClientMsgHandler = new BackendClientMsgHandler();
+        backendClientMsgHandler = new BackendClientMsgHandler(sessionCache);
     }
 
     @Override

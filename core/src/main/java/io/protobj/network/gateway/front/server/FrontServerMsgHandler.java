@@ -35,16 +35,12 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         byte cmd = buf.readByte();
         Channel channel = ctx.channel();
         Command command = Command.valueOf(cmd);
-        if (cmd == Command.Heartbeat.getCommand()) {
-            heartbeat(ctx, cmd);
-        } else if (cmd == Command.Forward.getCommand()) {
-            forward(ctx, buf, channel);
-        } else if (cmd == Command.Close.getCommand()) {
-            close(ctx);
-        } else {
-            channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.ERR_COMMAND));
+        switch (command) {
+            case Heartbeat -> heartbeat(ctx, cmd);
+            case Close -> close(ctx);
+            case Forward -> forward(ctx, buf, channel);
+            default -> channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.ERR_COMMAND));
         }
-
     }
 
     private void close(ChannelHandlerContext ctx) {
@@ -56,7 +52,7 @@ public class FrontServerMsgHandler extends ChannelInboundHandlerAdapter {
         }
         ByteBuf buffer = ctx.alloc().buffer(7);
         buffer.writeShort(5);
-        buffer.writeByte(Command.Forward.getCommand());//转发消息
+        buffer.writeByte(Command.Close.getCommand());//转发消息
         buffer.writeInt(frontServerSession.getId());
         Channel serverChannel = serverSession.get(RandomUtils.nextInt(0, serverSession.size())).getChannel();
         serverChannel.writeAndFlush(buffer);

@@ -10,6 +10,10 @@ import io.protobj.hotswap.HotSwapConfig;
 import io.protobj.hotswap.HotSwapManger;
 import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.network.gateway.NettyGateServer;
+import io.protobj.network.gateway.backend.client.session.GateSession;
+import io.protobj.network.gateway.backend.client.session.MutilChannelSession;
+import io.protobj.network.gateway.backend.client.session.Session;
+import io.protobj.network.gateway.backend.client.session.SessionCache;
 import io.protobj.resource.table.Id;
 import io.protobj.resource.table.TableContainer;
 import io.protobj.resource.table.Unique;
@@ -21,6 +25,8 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
+
+import static io.protobj.network.gateway.backend.client.session.MutilChannelSession.MUTIL_CHANNEL_KEY;
 
 public class TestMain {
     public static void main(String[] args) throws Exception, IllegalAccessException, UnknownHostException {
@@ -64,9 +70,19 @@ public class TestMain {
                 System.err.printf("gate backend[tcp] start in %s:%d%n", localhost, port);
             }
         }).join();
+        MutilChannelSession mutilChannelSession = new MutilChannelSession();
+        NettyGateClient nettyGateClient = new NettyGateClient(1, new SessionCache() {
+            @Override
+            public Session getSessionById(int channelId) {
+                return null;
+            }
+        });
+        for (int i = 0; i < 3; i++) {
+            CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
+            Channel join = client.join();
+            mutilChannelSession.add(join);
+        }
 
-        NettyGateClient nettyGateClient = new NettyGateClient(1);
-        CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
         Thread.sleep(10000000);
 
     }
