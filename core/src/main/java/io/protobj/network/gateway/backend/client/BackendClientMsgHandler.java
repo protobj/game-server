@@ -6,12 +6,18 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.protobj.network.Command;
+import io.protobj.network.MsgDispatcher;
+import io.protobj.network.Serilizer;
 import io.protobj.network.gateway.backend.client.session.Session;
 import io.protobj.network.gateway.backend.client.session.SessionCache;
 
 @ChannelHandler.Sharable
 public class BackendClientMsgHandler extends ChannelInboundHandlerAdapter {
     private SessionCache sessionCache;
+
+    private Serilizer serilizer;
+
+    private MsgDispatcher msgDispatcher;
 
     public BackendClientMsgHandler(SessionCache sessionCache) {
         this.sessionCache = sessionCache;
@@ -38,6 +44,8 @@ public class BackendClientMsgHandler extends ChannelInboundHandlerAdapter {
     private void forward(ByteBuf buf, Channel channel) {
         int channelId = buf.readInt();
         Session session = sessionCache.getSessionById(channelId);
+        Object msg = serilizer.toObject(buf);
+        msgDispatcher.dispatch(session, msg);
     }
 
 }

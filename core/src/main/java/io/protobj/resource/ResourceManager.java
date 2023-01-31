@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.protobj.ServerInstance.SERVICE_PACKAGE;
+import static io.protobj.microserver.MicroServer.SERVICE_PACKAGE;
 
 /**
  * 支持重载，依赖注入，单值配置，表配置

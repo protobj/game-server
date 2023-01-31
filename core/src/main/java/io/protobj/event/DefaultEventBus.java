@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import static io.protobj.ServerInstance.SERVICE_PACKAGE;
+import static io.protobj.microserver.MicroServer.SERVICE_PACKAGE;
 
 public class DefaultEventBus implements EvenBus {
     private static final Logger log = LoggerFactory.getLogger(DefaultEventBus.class);
