@@ -1,11 +1,12 @@
 package io.protobj.network;
 
 import io.netty.buffer.ByteBuf;
+import io.protobj.msg.Message;
 
 public interface Serilizer {
 
 
-    ByteBuf toByteArray(Object msg);
+    ByteBuf toByteArray(Message msg);
 
-    Object toObject(ByteBuf buf);
+    Message toObject(ByteBuf buf);
 }

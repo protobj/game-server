@@ -2,6 +2,7 @@ package io.protobj.resource.single;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.protobj.BeanContainer;
+import io.protobj.IServer;
 import io.protobj.resource.ResourceConfig;
 import io.protobj.resource.ResourceManager;
 import io.protobj.util.FileUtil;
@@ -31,7 +32,7 @@ public class SingleResourceManager {
     }
 
 
-    public void loadSingleResource(BeanContainer beanContainer, Reflections reflections, boolean reload) {
+    public void loadSingleResource(IServer server, Reflections reflections, boolean reload) {
         ResourceConfig resourceConfig = resourceManager.getResourceConfig();
         Set<Field> singleFields = reflections.getFieldsAnnotatedWith(Single.class);
         Map<String, SingleFileDesc> singleFileDescMap = readSingleResourceFile(reload);
@@ -44,7 +45,7 @@ public class SingleResourceManager {
                 throw new RuntimeException("single:[%s:%s] value not set ".formatted(singleField.getDeclaringClass().getName(), singleField.getName()));
             }
             singleField.setAccessible(true);
-            Object beanByType = beanContainer.getBeanByType(singleField.getDeclaringClass());
+            Object beanByType = server.getBeanByType(singleField.getDeclaringClass());
             if (beanByType == null) {
                 log.warn("bean has singleValue field but not found instance:{} field:{}", singleField.getDeclaringClass().getName(), singleField.getName());
                 continue;

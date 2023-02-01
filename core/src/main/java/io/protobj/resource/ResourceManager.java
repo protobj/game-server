@@ -1,6 +1,7 @@
 package io.protobj.resource;
 
 import io.protobj.BeanContainer;
+import io.protobj.IServer;
 import io.protobj.Module;
 import io.protobj.resource.single.SingleResourceManager;
 import io.protobj.resource.table.TableResourceManager;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.protobj.microserver.MicroServer.SERVICE_PACKAGE;
 
 /**
  * 支持重载，依赖注入，单值配置，表配置
@@ -34,17 +34,17 @@ public class ResourceManager {
     }
 
 
-    public void loadResource(List<Module> moduleList, BeanContainer beanContainer, boolean reload) {
+    public void loadResource(List<Module> moduleList,IServer server, boolean reload) {
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
         configurationBuilder.addScanners(Scanners.FieldsAnnotated);
         for (Module module : moduleList) {
-            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SERVICE_PACKAGE);
+            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + IServer.SERVICE_PACKAGE);
         }
         Reflections reflections = new Reflections(configurationBuilder);
 
-        singleResourceManager.loadSingleResource(beanContainer, reflections, reload);
+        singleResourceManager.loadSingleResource(server, reflections, reload);
 
-        tableResourceManager.loadTableResource(beanContainer, reflections, reload);
+        tableResourceManager.loadTableResource(server, reflections, reload);
     }
 
     public ResourceConfig getResourceConfig() {

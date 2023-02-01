@@ -1,6 +1,7 @@
 package io.protobj.resource.table;
 
 import io.protobj.BeanContainer;
+import io.protobj.IServer;
 import io.protobj.resource.ResourceConfig;
 import io.protobj.resource.ResourceManager;
 import io.protobj.util.ReflectUtil;
@@ -27,7 +28,7 @@ public class TableResourceManager {
         this.resourceManager = resourceManager;
     }
 
-    public void loadTableResource(BeanContainer beanContainer, Reflections reflections, boolean reload) {
+    public void loadTableResource(IServer server, Reflections reflections, boolean reload) {
         Set<Field> resourceContainerAnno = reflections.getFieldsAnnotatedWith(Storage.class);
         ResourceConfig resourceConfig = resourceManager.getResourceConfig();
         Map<Class<?>, TableContainer<?, ?>> loadedMap = new HashMap<>();
@@ -78,7 +79,7 @@ public class TableResourceManager {
             Class resourceType = (Class) parameterizedType.getActualTypeArguments()[1];
             TableContainer<?, ?> tableContainer = loadedMap.get(resourceType);
             try {
-                field.set(beanContainer.getBeanByType(field.getDeclaringClass()), tableContainer);
+                field.set(server.getBeanByType(field.getDeclaringClass()), tableContainer);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

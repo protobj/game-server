@@ -50,29 +50,29 @@ public class Test {
     }
 
     public static void main(String[] args) {
-        DefaultEventBus defaultEventBus = new DefaultEventBus();
-
-        defaultEventBus.register(List.of(new TestModule()), new BeanContainer() {
-            @Override
-            public <T> T getBeanByType(Class<T> clazz) {
-                try {
-                    return clazz.getConstructor().newInstance();
-                } catch (InstantiationException e) {
-                    throw new RuntimeException(e);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                } catch (InvocationTargetException e) {
-                    throw new RuntimeException(e);
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        defaultEventBus.postAsync(MessageListResponse.valueOf(), null, new TestEvent(), Executors.newFixedThreadPool(8));
-        try {
-            TimeUnit.HOURS.sleep(1);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        DefaultEventBus defaultEventBus = new DefaultEventBus();
+//
+//        defaultEventBus.register(List.of(new TestModule()), new BeanContainer() {
+//            @Override
+//            public <T> T getBeanByType(Class<T> clazz) {
+//                try {
+//                    return clazz.getConstructor().newInstance();
+//                } catch (InstantiationException e) {
+//                    throw new RuntimeException(e);
+//                } catch (IllegalAccessException e) {
+//                    throw new RuntimeException(e);
+//                } catch (InvocationTargetException e) {
+//                    throw new RuntimeException(e);
+//                } catch (NoSuchMethodException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        });
+//        defaultEventBus.postAsync(MessageListResponse.valueOf(), null, new TestEvent(), Executors.newFixedThreadPool(8));
+//        try {
+//            TimeUnit.HOURS.sleep(1);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 }

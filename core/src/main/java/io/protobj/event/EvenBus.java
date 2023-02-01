@@ -1,6 +1,7 @@
 package io.protobj.event;
 
 import io.protobj.BeanContainer;
+import io.protobj.IServer;
 import io.protobj.Module;
 
 import java.util.List;
@@ -12,9 +13,9 @@ public interface EvenBus {
 
 
 
-    void register(List<Module> moduleList, BeanContainer beanContainer);
+    void register(List<Module> moduleList, IServer server);
 
-    void register(Object bean);
+    void register(Object bean, IServer server);
 
     void registerSubscriber(Subscriber subscriber, Class<? extends Event> event);
 

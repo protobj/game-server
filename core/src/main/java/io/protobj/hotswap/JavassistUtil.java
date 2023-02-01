@@ -16,10 +16,6 @@ public class JavassistUtil {
     private static final Logger log = LoggerFactory.getLogger(JavassistUtil.class);
     private volatile static Instrumentation instrumentation;
 
-    public static ClassPool getClassPool() {
-        return ClassPool.getDefault();
-    }
-
     /**
      * 替换class
      */

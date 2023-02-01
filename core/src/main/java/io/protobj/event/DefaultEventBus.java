@@ -1,6 +1,6 @@
 package io.protobj.event;
 
-import io.protobj.BeanContainer;
+import io.protobj.IServer;
 import io.protobj.Module;
 import javassist.*;
 import javassist.bytecode.SignatureAttribute;
@@ -19,18 +19,17 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import static io.protobj.microserver.MicroServer.SERVICE_PACKAGE;
 
 public class DefaultEventBus implements EvenBus {
     private static final Logger log = LoggerFactory.getLogger(DefaultEventBus.class);
     private final Map<Class<? extends Event>, List<Subscriber>> subscriberMap = new HashMap<>();
 
     @Override
-    public void register(List<Module> moduleList, BeanContainer beanContainer) {
+    public void register(List<Module> moduleList, IServer server) {
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
         configurationBuilder.addScanners(Scanners.MethodsAnnotated, Scanners.SubTypes);
         for (Module module : moduleList) {
-            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + SERVICE_PACKAGE);
+            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + IServer.SERVICE_PACKAGE);
         }
         Reflections reflections = new Reflections(configurationBuilder);
         //接口事件
@@ -38,7 +37,7 @@ public class DefaultEventBus implements EvenBus {
         for (Class<? extends Subscriber> subscriberClass : subscriberClasses) {
             ParameterizedType genericInterface = (ParameterizedType) subscriberClass.getGenericInterfaces()[0];
             Class<? extends Event> actualTypeArgument = (Class<? extends Event>) genericInterface.getActualTypeArguments()[0];
-            Subscriber bean = beanContainer.getBeanByType(subscriberClass);
+            Subscriber bean = server.getBeanByType(subscriberClass);
             if (bean == null) {
                 throw new RuntimeException("class have no instance:%s".formatted(subscriberClass.getName()));
             }
@@ -49,12 +48,12 @@ public class DefaultEventBus implements EvenBus {
         Set<Method> subscribers = reflections.getMethodsAnnotatedWith(Subscribe.class);
         for (Method subscriber : subscribers) {
             checkSubscriber(subscriber);
-            Object bean = beanContainer.getBeanByType(subscriber.getDeclaringClass());
+            Object bean = server.getBeanByType(subscriber.getDeclaringClass());
             if (bean == null) {
                 throw new RuntimeException("class have no instance:%s".formatted(subscriber.getDeclaringClass().getName()));
             }
             try {
-                Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean);
+                Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean,server);
                 Class[] annotationsByType = subscriber.getAnnotation(Subscribe.class).value();
                 registerSubscriber(annotationsByType.length > 0 ? annotationsByType : new Class[]{subscriber.getParameterTypes()[2]}, enhanceSubscriber);
             } catch (Exception e) {
@@ -64,7 +63,7 @@ public class DefaultEventBus implements EvenBus {
     }
 
     @Override
-    public void register(Object bean) {
+    public void register(Object bean,IServer server) {
         if (bean instanceof Subscriber subscriber) {
             ParameterizedType genericInterface = (ParameterizedType) bean.getClass().getGenericInterfaces()[0];
             Class<? extends Event> actualTypeArgument = (Class<? extends Event>) genericInterface.getActualTypeArguments()[0];
@@ -74,7 +73,7 @@ public class DefaultEventBus implements EvenBus {
         for (Method subscriber : allMethods) {
             checkSubscriber(subscriber);
             try {
-                Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean);
+                Subscriber enhanceSubscriber = createEnhanceSubscriber(subscriber, bean, server);
                 Class[] annotationsByType = subscriber.getAnnotation(Subscribe.class).value();
                 registerSubscriber(annotationsByType.length > 0 ? annotationsByType : new Class[]{subscriber.getParameterTypes()[2]}, enhanceSubscriber);
             } catch (Exception e) {
@@ -83,10 +82,15 @@ public class DefaultEventBus implements EvenBus {
         }
     }
 
-    private Subscriber createEnhanceSubscriber(Method subscriber, Object bean) throws Exception {
-        var classPool = ClassPool.getDefault();
+    private Subscriber createEnhanceSubscriber(Method subscriber, Object bean, IServer server) throws Exception {
+        var classPool = server.getEnhanceClassCache().getClassPool();
         Class<?> eventClazz = subscriber.getParameterTypes()[2];
-        CtClass enhanceClazz = classPool.makeClass(Subscriber.class.getName() + bean.getClass().getSimpleName() + subscriber.getName() + System.nanoTime());
+        String classname = Subscriber.class.getName() + bean.getClass().getSimpleName() + subscriber.getName() + System.nanoTime();
+        Class existsClass = server.getEnhanceClassCache().getEnhanceClass(classname);
+        if (existsClass != null){
+            return (Subscriber) existsClass.getConstructor(bean.getClass()).newInstance(bean);
+        }
+        CtClass enhanceClazz = classPool.makeClass(classname);
         enhanceClazz.addInterface(classPool.get(Subscriber.class.getCanonicalName()));
         enhanceClazz.setGenericSignature(new SignatureAttribute.TypeVariable("Subscriber<%s>".formatted(eventClazz.getSimpleName())).encode());
         CtField field = new CtField(classPool.get(bean.getClass().getCanonicalName()), "bean", enhanceClazz);
@@ -104,6 +108,7 @@ public class DefaultEventBus implements EvenBus {
         enhanceClazz.addMethod(invokeMethod);
         enhanceClazz.detach();
         Class<?> resultClazz = enhanceClazz.toClass(Subscriber.class);
+        server.getEnhanceClassCache().putEnhanceClass(resultClazz);
         Constructor<?> resultConstructor = resultClazz.getConstructor(bean.getClass());
         return (Subscriber) resultConstructor.newInstance(bean);
     }
