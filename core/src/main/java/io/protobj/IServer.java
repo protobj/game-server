@@ -3,7 +3,6 @@ package io.protobj;
 import io.lettuce.core.event.EventBus;
 import io.protobj.enhance.EnhanceClassCache;
 import io.protobj.hotswap.HotSwapManger;
-import io.protobj.msgdispatcher.MsgDispatcher;
 import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
@@ -29,9 +28,6 @@ public interface IServer extends BeanContainer {
 
     //热更新管理
     HotSwapManger getHotSwapManger();
-
-    //网络消息分发
-    MsgDispatcher getMsgDispatcher();
 
     //网络连接
     NettyGateClient getNettyGateClient();

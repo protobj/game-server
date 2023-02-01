@@ -9,6 +9,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
+import io.protobj.msgdispatcher.MsgDispatcher;
 import io.protobj.network.gateway.backend.client.BackendClientAuthHandler;
 import io.protobj.network.gateway.backend.client.BackendClientMsgHandler;
 import io.protobj.network.gateway.backend.client.session.SessionCache;
@@ -22,6 +23,8 @@ public class NettyGateClient implements IGateClient {
 
     private final BackendClientAuthHandler backendClientAuthHandler;
     private final BackendClientMsgHandler backendClientMsgHandler;
+    //网络消息分发
+    private MsgDispatcher msgDispatcher;
 
     public NettyGateClient(int clientSize, SessionCache sessionCache) {
         this.workerGroup = new NioEventLoopGroup(clientSize);
@@ -49,7 +52,7 @@ public class NettyGateClient implements IGateClient {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.attr(SID).set(sid);
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
-                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2,0,2));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2, 0, 2));
                         ch.pipeline().addLast(backendClientAuthHandler);
                         ch.pipeline().addLast(backendClientMsgHandler);
                         ch.attr(CONNECT_FUTURE).set(connectFuture);
