@@ -1,4 +1,4 @@
-package io.protobj.scheduler;
+package io.protobj.datastructures;
 
 import java.util.Arrays;
 

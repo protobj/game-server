@@ -7,6 +7,8 @@ import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
 
+import java.util.concurrent.Executor;
+
 public interface IServer extends BeanContainer {
     public static final String SERVICE_PACKAGE = "service";
     public static final String EVENT_PACKAGE = "event";
@@ -31,4 +33,7 @@ public interface IServer extends BeanContainer {
 
     //网络连接
     NettyGateClient getNettyGateClient();
+
+
+    Executor getExecutor();
 }
