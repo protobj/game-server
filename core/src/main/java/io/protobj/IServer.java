@@ -35,5 +35,9 @@ public interface IServer extends BeanContainer {
     NettyGateClient getNettyGateClient();
 
 
-    Executor getExecutor();
+    Executor getManageExecutor();
+
+    Executor getLogicExecutor();
+
+    ThreadGroup threadGroup();
 }

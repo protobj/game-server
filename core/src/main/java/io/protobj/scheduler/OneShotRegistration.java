@@ -2,6 +2,7 @@ package io.protobj.scheduler;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 class OneShotRegistration<T> extends CompletableFuture<T> implements Registration<T> {
@@ -12,11 +13,13 @@ class OneShotRegistration<T> extends CompletableFuture<T> implements Registratio
 
   private final long delay;
 
-  public OneShotRegistration(int rounds, Callable<T> callable, long delay) {
+  protected final Executor executor;
+  public OneShotRegistration(int rounds, Callable<T> callable, long delay,Executor executor) {
     this.rounds = rounds;
     this.status = Status.READY;
     this.callable = callable;
     this.delay = delay;
+    this.executor = executor;
   }
 
   @Override
@@ -59,6 +62,11 @@ class OneShotRegistration<T> extends CompletableFuture<T> implements Registratio
   @Override
   public long getDelay(TimeUnit unit) {
     return delay;
+  }
+
+  @Override
+  public Executor executor() {
+    return executor;
   }
 
   @Override

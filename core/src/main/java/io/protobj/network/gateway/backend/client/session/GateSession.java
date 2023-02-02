@@ -2,11 +2,15 @@ package io.protobj.network.gateway.backend.client.session;
 
 import io.netty.channel.Channel;
 
+import java.util.concurrent.Executor;
+
 public class GateSession implements Session {
 
     private int channelId;
 
     private MutilChannelSession session;
+
+    private Executor executor;
 
 
     public int getChannelId() {
@@ -28,5 +32,10 @@ public class GateSession implements Session {
     @Override
     public void sendMsg(Object msg) {
         Channel channel = session.choose();
+    }
+
+    @Override
+    public Executor executor() {
+        return executor;
     }
 }

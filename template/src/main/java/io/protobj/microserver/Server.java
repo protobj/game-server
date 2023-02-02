@@ -24,8 +24,11 @@ public abstract class Server implements IServer {
 
     protected ServerConfig config;
 
+    protected ThreadGroup threadGroup;
+
     public CompletableFuture<?> start(ServerType serverType, int serverId, Properties properties) {
         this.config = new ServerConfig(serverType, serverId, properties);
+        this.threadGroup = new ThreadGroup(serverType.toFullSvrId(serverId));
         this.executor = initExecutor();
         return CompletableFuture.runAsync(() -> {
             startSpring();

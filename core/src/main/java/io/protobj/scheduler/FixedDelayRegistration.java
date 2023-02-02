@@ -1,6 +1,7 @@
 package io.protobj.scheduler;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 class FixedDelayRegistration<T> extends OneShotRegistration<T> {
@@ -12,10 +13,11 @@ class FixedDelayRegistration<T> extends OneShotRegistration<T> {
   public FixedDelayRegistration(int rounds,
                                 Callable<T> callable,
                                 long delay,
+                                Executor executor,
                                 int scheduleRounds,
                                 int scheduleOffset,
                                 Consumer<Registration<?>> rescheduleCallback) {
-    super(rounds, callable, delay);
+    super(rounds, callable, delay,executor);
     this.rescheduleRounds = scheduleRounds;
     this.scheduleOffset = scheduleOffset;
     this.rescheduleCallback = rescheduleCallback;
