@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,7 +34,7 @@ public class Bucket implements Delayed {
     @Override
     public long getDelay(TimeUnit unit) {
         long dt = expireTimeMillis.get() - HashedWheelTimer.getCurrentMilliSecond();
-        return dt > 0 ? dt : 0;
+        return unit.convert(dt > 0 ? dt : 0, TimeUnit.MILLISECONDS);
     }
 
     @Override

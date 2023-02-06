@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.util.concurrent.DelayQueue;
 
@@ -70,5 +70,9 @@ public class TimeWheel {
                 overflowTimeWheel = new TimeWheel(wheelSize, tick * wheelSize, delayQueue);
             }
         }
+    }
+
+    public int getTick() {
+        return tick;
     }
 }

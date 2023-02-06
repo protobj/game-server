@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import io.protobj.IServer;
 

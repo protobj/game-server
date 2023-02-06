@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.time.ZoneId;
 import java.util.concurrent.*;
@@ -29,7 +29,7 @@ public interface TimedTask<T> extends ScheduledFuture<T>, Runnable {
         }
     }
 
-    default void tryRepeat(HashedWheelTimer.ExpireCallback reAdd, ZoneId zoneId) {
+    default void tryRepeatOnExecute(HashedWheelTimer.ExpireCallback reAdd, ZoneId zoneId) {
 
     }
 }

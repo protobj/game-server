@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;

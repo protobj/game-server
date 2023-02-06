@@ -1,9 +1,12 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.concurrent.Callable;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executor;
@@ -37,7 +40,7 @@ public class HashedWheelTimer implements Runnable {
             if (isRunning()) {
                 return;
             }
-            this.timeWheel = new TimeWheel(wheelSize, tickMilliSecond, delayQueue);
+            this.timeWheel = new TimeWheel(tickMilliSecond, wheelSize, delayQueue);
             startThread();
         }
     }
@@ -57,6 +60,7 @@ public class HashedWheelTimer implements Runnable {
         if (ok) {
             taskCount.incrementAndGet();
         } else if (!task.isCancelled()) {
+            task.tryRepeatOnExecute(this::add, zoneId);
             task.executor().execute(task);
         }
     }
@@ -100,7 +104,7 @@ public class HashedWheelTimer implements Runnable {
         } else {
             //已经超时
             taskCount.decrementAndGet();
-            task.tryRepeat(this::add, zoneId);
+            task.tryRepeatOnExecute(this::add, zoneId);
             task.executor().execute(task);
         }
     }
@@ -200,7 +204,9 @@ public class HashedWheelTimer implements Runnable {
     }
 
     public <T> TimedTask<T> fixedRate(Executor executor, long period, Callable<T> callable) {
-        FixedRateTimedTask<T> task = new FixedRateTimedTask<>(period, executor, callable);
+        long curTs = getCurrentMilliSecond();
+        long currentTimeMillis = curTs - curTs % timeWheel.getTick();
+        FixedRateTimedTask<T> task = new FixedRateTimedTask<>(currentTimeMillis, executor, callable, period);
         add(task);
         return task;
     }
@@ -211,7 +217,9 @@ public class HashedWheelTimer implements Runnable {
     }
 
     public <T> TimedTask<T> fixedDelay(Executor executor, long period, Callable<T> callable) {
-        FixedDelayTimedTask<T> task = new FixedDelayTimedTask<>(period, executor, callable, this::add);
+        long curTs = getCurrentMilliSecond();
+        long currentTimeMillis = curTs - curTs % timeWheel.getTick();
+        FixedDelayTimedTask<T> task = new FixedDelayTimedTask<>(currentTimeMillis, executor, callable, period, this::add);
         add(task);
         return task;
     }
@@ -221,7 +229,15 @@ public class HashedWheelTimer implements Runnable {
     }
 
     public <T> TimedTask<T> cron(Executor executor, String cron, Callable<T> callable) {
-        CronTimedTask<T> task = new CronTimedTask<>(0, executor, callable, cron, zoneId);
+        long curTs = getCurrentMilliSecond();
+        long currentTimeMillis = curTs - curTs % timeWheel.getTick();
+        CronExpression cronExpression = CronExpression.parse(cron);
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentTimeMillis), zoneId);
+        ZonedDateTime next = cronExpression.next(zonedDateTime);
+        if (next == null) {
+            throw new IllegalArgumentException("cron：%s error".formatted(cron));
+        }
+        CronTimedTask<T> task = new CronTimedTask<>(next.toInstant().toEpochMilli(), executor, callable, cronExpression);
         add(task);
         return task;
     }

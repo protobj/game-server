@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;

@@ -1,4 +1,4 @@
-package io.protobj.scheduler1;
+package io.protobj.scheduler;
 
 import java.time.ZoneId;
 import java.util.concurrent.Callable;
@@ -9,13 +9,13 @@ public class FixedRateTimedTask<T> extends OneShotTimedTask<T> {
     private final long period;
 
 
-    public FixedRateTimedTask(long period, Executor executor, Callable<T> callable) {
-        super(period + System.currentTimeMillis(), executor, callable);
+    public FixedRateTimedTask(long expireTimeMillis, Executor executor, Callable<T> callable,long period) {
+        super(expireTimeMillis,executor,callable);
         this.period = period;
     }
 
     @Override
-    public void tryRepeat(HashedWheelTimer.ExpireCallback reAdd, ZoneId zoneId) {
+    public void tryRepeatOnExecute(HashedWheelTimer.ExpireCallback reAdd, ZoneId zoneId) {
         this.expireTimeMillis += period;
         reAdd.onTime(this);
     }

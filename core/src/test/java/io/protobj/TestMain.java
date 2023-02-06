@@ -7,14 +7,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import io.protobj.resource.table.Id;
 import io.protobj.resource.table.Unique;
-import io.protobj.scheduler1.HashedWheelTimer;
+import io.protobj.scheduler.HashedWheelTimer;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.UnknownHostException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TestMain {
     public static void main(String[] args) throws Exception, IllegalAccessException, UnknownHostException {
@@ -77,25 +75,25 @@ public class TestMain {
         hashedWheelTimer.startWith(1000, 60);
 
         //直接执行
-        hashedWheelTimer.execute(Runnable::run, () -> {
-            System.out.println("hahshsdhfasdf");
-        });
-        hashedWheelTimer.fixedRate(Runnable::run, 1000, () -> {
-            System.err.println("fixedRate + " + System.currentTimeMillis());
-        });
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        hashedWheelTimer.fixedDelay(executorService, 1000, () -> {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            System.err.println("fixedDelay + " + System.currentTimeMillis());
-        });
+//        hashedWheelTimer.execute(Runnable::run, () -> {
+//            System.out.println("hahshsdhfasdf");
+//        });
+//        hashedWheelTimer.fixedRate(Runnable::run, 1000, () -> {
+//            System.err.println("fixedRate + " + System.currentTimeMillis());
+//        });
+//        ExecutorService executorService = Executors.newSingleThreadExecutor();
+//        hashedWheelTimer.fixedDelay(executorService, 1000, () -> {
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+//            System.err.println("fixedDelay + " + System.currentTimeMillis());
+//        });
 
-        hashedWheelTimer.cron(Runnable::run, "*/5 * * * * ?", () -> {
-            System.err.println("cron + " + System.currentTimeMillis());
-        });
+//        hashedWheelTimer.cron(Runnable::run, "*/5 * * * * ?", () -> {
+//            System.err.println("cron + " + System.currentTimeMillis());
+//        });
 
 
         Thread.sleep(10000000);
