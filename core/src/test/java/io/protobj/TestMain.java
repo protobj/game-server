@@ -71,8 +71,7 @@ public class TestMain {
 //
 //
 
-        HashedWheelTimer hashedWheelTimer = new HashedWheelTimer();
-        hashedWheelTimer.startWith(1000, 60);
+        HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(new ThreadGroup("Test-Timer"), 1000, 60,null);
 
         //直接执行
 //        hashedWheelTimer.execute(Runnable::run, () -> {
@@ -91,9 +90,9 @@ public class TestMain {
 //            System.err.println("fixedDelay + " + System.currentTimeMillis());
 //        });
 
-//        hashedWheelTimer.cron(Runnable::run, "*/5 * * * * ?", () -> {
-//            System.err.println("cron + " + System.currentTimeMillis());
-//        });
+        hashedWheelTimer.cron(Runnable::run, "*/5 * * * * ?", () -> {
+            System.err.println("cron + " + System.currentTimeMillis());
+        });
 
 
         Thread.sleep(10000000);

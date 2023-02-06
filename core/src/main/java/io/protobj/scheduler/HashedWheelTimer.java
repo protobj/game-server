@@ -1,5 +1,6 @@
 package io.protobj.scheduler;
 
+import io.protobj.thread.CustomThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.support.CronExpression;
@@ -7,9 +8,7 @@ import org.springframework.scheduling.support.CronExpression;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.concurrent.Callable;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Executor;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -18,35 +17,30 @@ public class HashedWheelTimer implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(HashedWheelTimer.class);
 
-    private volatile Thread currentThread = null;
-
     public interface ExpireCallback {
         void onTime(TimedTask<?> task);
     }
 
     private final AtomicLong taskCount = new AtomicLong(0L);
     private final DelayQueue<Bucket> delayQueue = new DelayQueue<Bucket>();
+
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+
     private TimeWheel timeWheel;
 
     private final ZoneId zoneId;
 
-    public HashedWheelTimer() {
-        this.zoneId = ZoneId.systemDefault();
-    }
+    private final ExecutorService loop;
 
-    public void startWith(int tickMilliSecond, int wheelSize) {
-        synchronized (this) {
-            if (isRunning()) {
-                return;
-            }
-            this.timeWheel = new TimeWheel(tickMilliSecond, wheelSize, delayQueue);
-            startThread();
-        }
+    public HashedWheelTimer(ThreadGroup threadGroup, int tickMilliSecond, int wheelSize, ZoneId zoneId) {
+        this.zoneId = zoneId != null ? zoneId : ZoneId.systemDefault();
+        this.timeWheel = new TimeWheel(tickMilliSecond, wheelSize, delayQueue);
+        this.loop = Executors.newSingleThreadExecutor(CustomThreadFactory.create(threadGroup, HashedWheelTimer.class.getSimpleName()));
+        this.loop.submit(this);
     }
 
     public void shutdown() {
-        stopThread();
+        this.loop.shutdownNow();
     }
 
     public void add(TimedTask<?> task) {
@@ -113,13 +107,11 @@ public class HashedWheelTimer implements Runnable {
     @Override
     final public void run() {
         try {
-            logger.info("thread onStart: " + selfName());
-            onStart();
+            logger.info("thread start: " + Thread.currentThread().getName());
             process();
         } finally {
-            currentThread = null;
             onShutdown();
-            logger.info("thread onShutdown: " + selfName());
+            logger.info("thread shutDown: " + Thread.currentThread().getName());
         }
     }
 
@@ -135,59 +127,13 @@ public class HashedWheelTimer implements Runnable {
                     Thread.sleep(sleepMillis);
                 }
             } catch (InterruptedException e) {
-                logger.warn("thread isInterrupted: " + selfName(), e);
+                logger.warn("interrupted: %s".formatted(Thread.currentThread().getName()), e);
                 break;
             } catch (Exception e) {
-                logger.error("thread onLoop failed: " + selfName(), e);
-            }
-            if (currentThread.isInterrupted()) {
-                logger.warn("thread isInterrupted: " + selfName());
-                break;
+                logger.error("error: %s".formatted(Thread.currentThread().getName()), e);
             }
         }
     }
-
-    protected void onStart() {
-    }
-
-    /**
-     * 运行中
-     *
-     * @return
-     */
-    public boolean isRunning() {
-        return currentThread != null;
-    }
-
-    /**
-     * 启动
-     */
-    private void startThread() {
-        synchronized (this) {
-            if (currentThread == null) {
-                currentThread = new Thread(this);
-                currentThread.start();
-            } else {
-                logger.error("thread already started: " + selfName());
-            }
-        }
-    }
-
-    /**
-     * 停止
-     */
-    private void stopThread() {
-        synchronized (this) {
-            if (currentThread != null) {
-                currentThread.interrupt();
-            }
-        }
-    }
-
-    private String selfName() {
-        return this.getClass().getSimpleName();
-    }
-
 
     public TimedTask<Void> execute(Executor executor, Runnable runnable) {
         return execute(executor, constantlyNull(runnable));
