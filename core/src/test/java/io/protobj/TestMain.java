@@ -5,28 +5,16 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
-import io.netty.channel.Channel;
-import io.protobj.hotswap.HotSwapConfig;
-import io.protobj.hotswap.HotSwapManger;
-import io.protobj.network.gateway.NettyGateClient;
-import io.protobj.network.gateway.NettyGateServer;
-import io.protobj.network.gateway.backend.client.session.GateSession;
-import io.protobj.network.gateway.backend.client.session.MutilChannelSession;
-import io.protobj.network.gateway.backend.client.session.Session;
-import io.protobj.network.gateway.backend.client.session.SessionCache;
 import io.protobj.resource.table.Id;
-import io.protobj.resource.table.TableContainer;
 import io.protobj.resource.table.Unique;
+import io.protobj.scheduler1.HashedWheelTimer;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.UnknownHostException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.CompletableFuture;
-
-import static io.protobj.network.gateway.backend.client.session.MutilChannelSession.MUTIL_CHANNEL_KEY;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TestMain {
     public static void main(String[] args) throws Exception, IllegalAccessException, UnknownHostException {
@@ -57,34 +45,60 @@ public class TestMain {
 //        TableContainer<Integer, TestResource> load = tableContainer.load(Path.of("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource.json"), jackSon);
 //        System.err.println();
 
+//
+//        NettyGateServer nettyGateServer = new NettyGateServer(1);
+//
+//        String localhost = "localhost";
+//        int port = 9999;
+//        CompletableFuture<Void> gate = nettyGateServer.startTcpBackendServer(localhost, port);
+//        gate.whenCompleteAsync((r, e) -> {
+//            if (e != null) {
+//                e.printStackTrace();
+//            } else {
+//                System.err.printf("gate backend[tcp] start in %s:%d%n", localhost, port);
+//            }
+//        }).join();
+//        MutilChannelSession mutilChannelSession = new MutilChannelSession();
+//        NettyGateClient nettyGateClient = new NettyGateClient(1, new SessionCache() {
+//            @Override
+//            public Session getSessionById(int channelId) {
+//                return null;
+//            }
+//        });
+//        for (int i = 0; i < 3; i++) {
+//            CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
+//            Channel join = client.join();
+//            mutilChannelSession.add(join);
+//        }
+//
+//
 
-        NettyGateServer nettyGateServer = new NettyGateServer(1);
+        HashedWheelTimer hashedWheelTimer = new HashedWheelTimer();
+        hashedWheelTimer.startWith(1000, 60);
 
-        String localhost = "localhost";
-        int port = 9999;
-        CompletableFuture<Void> gate = nettyGateServer.startTcpBackendServer(localhost, port);
-        gate.whenCompleteAsync((r, e) -> {
-            if (e != null) {
-                e.printStackTrace();
-            } else {
-                System.err.printf("gate backend[tcp] start in %s:%d%n", localhost, port);
-            }
-        }).join();
-        MutilChannelSession mutilChannelSession = new MutilChannelSession();
-        NettyGateClient nettyGateClient = new NettyGateClient(1, new SessionCache() {
-            @Override
-            public Session getSessionById(int channelId) {
-                return null;
-            }
+        //直接执行
+        hashedWheelTimer.execute(Runnable::run, () -> {
+            System.out.println("hahshsdhfasdf");
         });
-        for (int i = 0; i < 3; i++) {
-            CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
-            Channel join = client.join();
-            mutilChannelSession.add(join);
-        }
+        hashedWheelTimer.fixedRate(Runnable::run, 1000, () -> {
+            System.err.println("fixedRate + " + System.currentTimeMillis());
+        });
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        hashedWheelTimer.fixedDelay(executorService, 1000, () -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.err.println("fixedDelay + " + System.currentTimeMillis());
+        });
+
+        hashedWheelTimer.cron(Runnable::run, "*/5 * * * * ?", () -> {
+            System.err.println("cron + " + System.currentTimeMillis());
+        });
+
 
         Thread.sleep(10000000);
-
     }
 
     public static class JackSonImpl implements Json {
