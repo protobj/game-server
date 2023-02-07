@@ -13,7 +13,10 @@
 
 package io.protobj.scheduler;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
 @Retention(RetentionPolicy.RUNTIME)
@@ -22,13 +25,9 @@ public @interface Scheduled {
 
     String cron() default "";
 
-    String zone() default "";
-
     long fixedDelay() default -1L;
 
     long fixedRate() default -1L;
-
-    long initialDelay() default -1L;
 
     TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
 

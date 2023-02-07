@@ -6,6 +6,7 @@ import io.protobj.hotswap.HotSwapManger;
 import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
+import io.protobj.scheduler.SchedulerService;
 
 import java.util.concurrent.Executor;
 
@@ -40,4 +41,6 @@ public interface IServer extends BeanContainer {
     Executor getLogicExecutor();
 
     ThreadGroup threadGroup();
+
+    SchedulerService schedulerService();
 }

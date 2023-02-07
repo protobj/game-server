@@ -48,6 +48,7 @@ public class DefaultNetHandler implements INetHandler {
             stringBuilder.append("\treturn bean." + method.getName() + "((" + receiveClass.getTypeName() + ")$1);\n");//
             stringBuilder.append("}\n");
             ctClass.addMethod(CtMethod.make(stringBuilder.toString(), ctClass));
+            ctClass.detach();
             final Class<?> aClass = ctClass.toClass();
             server.getEnhanceClassCache().putEnhanceClass(aClass);
             return (INetHandler) aClass.getConstructor(object.getClass())

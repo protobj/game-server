@@ -63,20 +63,6 @@ public class HashedWheelTimer implements Runnable {
         return taskCount.get();
     }
 
-    protected long onLoop(long currentTime) throws InterruptedException {
-        Bucket bucket = delayQueue.take();
-        //lock ==> 时间轮滚动的时候不能添加任务
-        rwLock.writeLock().lock();
-        try {
-            timeWheel.advanceClock(bucket.getExpireTimeMillis());
-            bucket.expire(this::flush);
-        } finally {
-            //unlock
-            rwLock.writeLock().unlock();
-        }
-        return 0;
-    }
-
     protected void onShutdown() {
         taskCount.set(0);
         delayQueue.clear();
@@ -119,12 +105,17 @@ public class HashedWheelTimer implements Runnable {
      * 处理器
      */
     public void process() {
-        long sleepMillis = 0;
         while (true) {
             try {
-                sleepMillis = onLoop(System.currentTimeMillis());
-                if (sleepMillis > 0) {
-                    Thread.sleep(sleepMillis);
+                Bucket bucket = delayQueue.take();
+                //lock ==> 时间轮滚动的时候不能添加任务
+                rwLock.writeLock().lock();
+                try {
+                    timeWheel.advanceClock(bucket.getExpireTimeMillis());
+                    bucket.expire(this::flush);
+                } finally {
+                    //unlock
+                    rwLock.writeLock().unlock();
                 }
             } catch (InterruptedException e) {
                 logger.warn("interrupted: %s".formatted(Thread.currentThread().getName()), e);
@@ -186,6 +177,10 @@ public class HashedWheelTimer implements Runnable {
         CronTimedTask<T> task = new CronTimedTask<>(next.toInstant().toEpochMilli(), executor, callable, cronExpression);
         add(task);
         return task;
+    }
+
+    public long getTick() {
+        return timeWheel.getTick();
     }
 
     private static <T> Callable<T> constantlyNull(Runnable r) {
