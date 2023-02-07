@@ -5,9 +5,9 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
-import io.lettuce.core.event.EventBus;
 import io.netty.channel.Channel;
 import io.protobj.enhance.EnhanceClassCache;
+import io.protobj.event.EventBus;
 import io.protobj.event.Test;
 import io.protobj.hotswap.HotSwapConfig;
 import io.protobj.hotswap.HotSwapManger;
@@ -64,8 +64,8 @@ public class TestMain implements IServer {
     }
 
     private static void testHotSwap() {
-        HotSwapManger hotSwapManger = new HotSwapManger();
-        hotSwapManger.start(new HotSwapConfig("/home/chen/game/swap", "/home/chen/game/add", 8787));
+        HotSwapManger hotSwapManger = new HotSwapManger(new HotSwapConfig("/home/chen/game/swap", "/home/chen/game/add", 8787));
+        hotSwapManger.start();
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {

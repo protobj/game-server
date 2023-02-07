@@ -1,11 +1,15 @@
 package io.protobj.scheduler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 public class OneShotTimedTask<T> extends CompletableFuture<T> implements TimedTask<T> {
+    private static final Logger logger = LoggerFactory.getLogger(OneShotTimedTask.class);
     private volatile boolean cancelled = false;//是否取消
     protected volatile long expireTimeMillis;//到期时间
 
@@ -45,6 +49,7 @@ public class OneShotTimedTask<T> extends CompletableFuture<T> implements TimedTa
         try {
             this.complete(callable.call());
         } catch (Throwable e) {
+            logger.error("error", e);
             this.completeExceptionally(e);
         }
     }

@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 
-public class DefaultEventBus implements EvenBus {
+public class DefaultEventBus implements EventBus {
     private static final Logger log = LoggerFactory.getLogger(DefaultEventBus.class);
     private final Map<Class<? extends Event>, List<Subscriber>> subscriberMap = new HashMap<>();
 

@@ -41,12 +41,12 @@ public class HotSwapManger {
 
     private final InMemoryJavaCompiler javaCompiler = InMemoryJavaCompiler.newInstance();
 
-    public HotSwapManger() {
+    public HotSwapManger(HotSwapConfig hotSwapConfig) {
+        this.hotSwapConfig = hotSwapConfig;
     }
 
 
-    public void start(HotSwapConfig hotSwapConfig) {
-        this.hotSwapConfig = hotSwapConfig;
+    public void start() {
         try {
             String host = getIpAddress();
             //随机端口

@@ -1,6 +1,5 @@
 package io.protobj.event;
 
-import io.protobj.BeanContainer;
 import io.protobj.IServer;
 import io.protobj.Module;
 
@@ -8,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public interface EvenBus {
+public interface EventBus {
 
 
 

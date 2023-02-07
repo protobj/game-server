@@ -1,7 +1,7 @@
 package io.protobj;
 
-import io.lettuce.core.event.EventBus;
 import io.protobj.enhance.EnhanceClassCache;
+import io.protobj.event.EventBus;
 import io.protobj.hotswap.HotSwapManger;
 import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.redisaccessor.RedisAccessor;
@@ -17,6 +17,7 @@ public interface IServer extends BeanContainer {
     public static final String ENTITY_PACKAGE = "entity";
     public static final String MESSAGE_PACKAGE = "message";
 
+    ThreadGroup threadGroup();
     //代码增强
     EnhanceClassCache getEnhanceClassCache();
 
@@ -40,7 +41,6 @@ public interface IServer extends BeanContainer {
 
     Executor getLogicExecutor();
 
-    ThreadGroup threadGroup();
 
     SchedulerService schedulerService();
 }
