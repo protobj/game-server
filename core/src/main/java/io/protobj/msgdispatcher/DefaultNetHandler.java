@@ -2,6 +2,7 @@ package io.protobj.msgdispatcher;
 
 import io.protobj.IServer;
 import io.protobj.msg.Message;
+import io.protobj.network.gateway.backend.client.session.Session;
 import javassist.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,14 +15,19 @@ public class DefaultNetHandler implements INetHandler {
     protected Object source;
     protected Method method;
 
+    private boolean hasIndex = false;
+
     public DefaultNetHandler(Object source, Method method) {
         this.source = source;
         this.method = method;
     }
 
     @NetHandler
-    public CompletableFuture<?> invoke(Message message) throws Throwable {
-        return (CompletableFuture<?>) method.invoke(source, message);
+    public CompletableFuture<?> invoke(Session session,Message message) throws Throwable {
+        if (hasIndex) {
+            return (CompletableFuture<?>) method.invoke(source,session, message.index(), message.msg());
+        }
+        return (CompletableFuture<?>) method.invoke(source, session, message.msg());
     }
 
     public Method getMethod() {
@@ -37,14 +43,19 @@ public class DefaultNetHandler implements INetHandler {
             if (oldClass != null) {
                 return (INetHandler) oldClass.getConstructor(object.getClass()).newInstance(object);
             }
-
             final CtClass ctClass = classPool.makeClass(classname);
             ctClass.setSuperclass(classPool.get(DefaultNetHandler.class.getName()));
             ctClass.addField(CtField.make("private " + object.getClass().getName() + " bean;", ctClass));
             CtConstructor ctConstructor = new CtConstructor(new CtClass[]{classPool.get(object.getClass().getName())}, ctClass);
             ctConstructor.setBody("{this.bean=$1;}");
             ctClass.addConstructor(ctConstructor);
-            stringBuilder.append("\npublic java.util.concurrent.CompletableFuture invoke(io.protobj.msg.Message data) throws Throwable {\n");
+            stringBuilder.append("\npublic java.util.concurrent.CompletableFuture invoke(io.protobj.network.gateway.backend.client.session.Session session,io.protobj.msg.Message data) throws Throwable {\n");
+            Class<?> parameterType = method.getParameterTypes()[1];
+            if (parameterType == int.class) {
+                stringBuilder.append("\treturn bean." + method.getName() + "($1,$2.index(),(" + receiveClass.getTypeName() + ")$2.msg());\n");//
+            }else{
+                stringBuilder.append("\treturn bean." + method.getName() + "($1,(" + receiveClass.getTypeName() + ")$2.msg());\n");//
+            }
             stringBuilder.append("\treturn bean." + method.getName() + "((" + receiveClass.getTypeName() + ")$1);\n");//
             stringBuilder.append("}\n");
             ctClass.addMethod(CtMethod.make(stringBuilder.toString(), ctClass));

@@ -19,8 +19,14 @@ public class DefaultRedisAccessor implements RedisAccessor {
 
     protected RedisDataSource dataSource;
 
+    private final RedisConfig redisConfig;
+
+    public DefaultRedisAccessor(RedisConfig redisConfig) {
+        this.redisConfig = redisConfig;
+    }
+
     @Override
-    public void init(RedisConfig redisConfig) throws Exception {
+    public void init() throws Exception {
         this.namespace = "{" + redisConfig.getNamespace() + "}";
         this.dataSource = new LettuceRedisDataSource();
         dataSource.init(redisConfig);

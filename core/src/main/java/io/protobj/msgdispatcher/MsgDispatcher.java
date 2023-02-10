@@ -5,5 +5,5 @@ import io.protobj.network.gateway.backend.client.session.Session;
 
 public interface MsgDispatcher {
 
-    void dispatch(Message message);
+    void dispatch(Session session, Message message);
 }

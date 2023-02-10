@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 public interface RedisAccessor {
-    void init(RedisConfig redisConfig) throws Exception;
+    void init() throws Exception;
 
     Mono<Map<KeyId, Map<FieldId, FieldValue>>> getAllAsync(KeyDesc keyDesc);
 

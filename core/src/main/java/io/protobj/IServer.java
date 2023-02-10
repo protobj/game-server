@@ -3,7 +3,6 @@ package io.protobj;
 import io.protobj.enhance.EnhanceClassCache;
 import io.protobj.event.EventBus;
 import io.protobj.hotswap.HotSwapManger;
-import io.protobj.network.gateway.NettyGateClient;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
 import io.protobj.scheduler.SchedulerService;
@@ -18,6 +17,7 @@ public interface IServer extends BeanContainer {
     public static final String MESSAGE_PACKAGE = "message";
 
     ThreadGroup threadGroup();
+
     //代码增强
     EnhanceClassCache getEnhanceClassCache();
 
@@ -33,12 +33,9 @@ public interface IServer extends BeanContainer {
     //热更新管理
     HotSwapManger getHotSwapManger();
 
-    //网络连接
-    NettyGateClient getNettyGateClient();
-
-
     Executor getManageExecutor();
 
+    //逻辑执行器
     Executor getLogicExecutor();
 
 
