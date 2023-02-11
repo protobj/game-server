@@ -1,12 +1,12 @@
 package io.protobj.microserver.net;
 
-import com.alibaba.fastjson.JSON;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
-import com.pv.common.utilities.exception.LogicException;
-import com.pv.framework.gs.core.msg.CodeGameServerSys;
+
+import io.protobj.exception.LogicException;
+import io.protobj.util.Jackson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +25,8 @@ public class FutureContainer {
                         Object ask = notification.getValue().ask;
                         CompletableFuture future = notification.getValue().getFuture();
                         if (future != null && !future.isDone()) {
-                            logger.error("ask callback : {}->{} cause:{}", ask.getClass().getSimpleName(), JSON.toJSONString(ask), notification.getCause());
-                            future.completeExceptionally(new LogicException(CodeGameServerSys.UNKNOWN_SYS_EXCEPTION.getCode()));
+                            logger.error("ask callback : {}->{} cause:{}", ask.getClass().getSimpleName(), Jackson.INSTANCE.encode(ask), notification.getCause());
+                            future.completeExceptionally(new LogicException(1));
                         }
                         notification.getValue().recycle();
                     }

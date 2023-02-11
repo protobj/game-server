@@ -1,8 +1,8 @@
 package io.protobj.microserver.servicediscrovery;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.message.core.serverregistry.zk.ServerListener;
+import io.protobj.microserver.ServerType;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import io.protobj.microserver.serverregistry.zk.ServerListener;
 import org.apache.curator.x.discovery.ServiceCache;
 
 import java.util.Collection;
@@ -20,9 +20,9 @@ public interface IServiceDiscovery {
 
     void unregister(ServerInfo serverInfo);
 
-    ServerInfo select(ServerInfo serverInfo, SvrType tgtType);
+    ServerInfo select(ServerInfo serverInfo, ServerType tgtType);
 
-    ServerInfo query(SvrType svrType, String id);
+    ServerInfo query(ServerType ServerType, String id);
 
     void noteError(ServerInfo serverInfo);
 
@@ -30,7 +30,7 @@ public interface IServiceDiscovery {
 
     void listenDestroy(String producerName, Runnable destroyCallback);
 
-    ServiceCache<ServerInfo> newServiceCache(SvrType svrType);
+    ServiceCache<ServerInfo> newServiceCache(ServerType ServerType);
 
-    void closeServerCache(SvrType type);
+    void closeServerCache(ServerType type);
 }

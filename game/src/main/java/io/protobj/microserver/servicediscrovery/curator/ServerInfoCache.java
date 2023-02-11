@@ -1,11 +1,9 @@
 package io.protobj.microserver.servicediscrovery.curator;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.message.core.serverregistry.zk.ServerListener;
-import com.guangyu.cd003.projects.message.core.servicediscrovery.IServiceDiscovery;
-import com.guangyu.cd003.projects.microserver.MicroServer;
-import com.pv.common.utilities.common.CommonUtil;
+import io.protobj.microserver.ServerType;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import io.protobj.microserver.serverregistry.zk.ServerListener;
+import io.protobj.microserver.servicediscrovery.IServiceDiscovery;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.x.discovery.ServiceCache;
@@ -19,6 +17,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerInfoCache implements ServiceCacheListener {
 
@@ -26,14 +25,14 @@ public class ServerInfoCache implements ServiceCacheListener {
 
     private ServiceCache<ServerInfo> cache;
 
-    private Map<Integer, ServerInfo> serviceInstanceMap = CommonUtil.createMap();
+    private Map<Integer, ServerInfo> serviceInstanceMap = new ConcurrentHashMap<>();
 
     private final ServerListener serverListener;
 
-    private final SvrType svrType;
+    private final ServerType ServerType;
 
-    public ServerInfoCache(SvrType type, IServiceDiscovery serviceDiscovery, ServerListener serverListener) {
-        this.svrType = type;
+    public ServerInfoCache(ServerType type, IServiceDiscovery serviceDiscovery, ServerListener serverListener) {
+        this.ServerType = type;
         this.serverListener = serverListener;
         ServiceCache<ServerInfo> serverInfoServiceCache = serviceDiscovery.newServiceCache(type);
         serverInfoServiceCache.addListener(this);
@@ -61,7 +60,7 @@ public class ServerInfoCache implements ServiceCacheListener {
     }
 
     private void cacheChanged(Collection<ServiceInstance<ServerInfo>> instances) {
-        Map<Integer, ServerInfo> serviceInstanceMap = CommonUtil.createMap();
+        Map<Integer, ServerInfo> serviceInstanceMap = new ConcurrentHashMap<>();
         ServerListener serverListener = this.serverListener;
         for (ServiceInstance<ServerInfo> instance : instances) {
             ServerInfo serverInfo = instance.getPayload();

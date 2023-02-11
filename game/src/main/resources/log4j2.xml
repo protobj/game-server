@@ -32,7 +32,7 @@
             <appender-ref ref="Console"/>
         </root>
 
-        <Logger name="com.guangyu.cd003.projects.message.core.net.MQMsgPrinter" level="debug">
+        <Logger name="io.protobj.microserver.net.MQMsgPrinter" level="debug">
         </Logger>
     </loggers>
 </configuration>

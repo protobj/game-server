@@ -1,7 +1,7 @@
 package io.protobj.microserver.net;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
 import io.netty.util.internal.ObjectPool;
+import io.protobj.microserver.ServerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,12 +23,12 @@ public class Ask<A> {
         return System.currentTimeMillis() - startTime > ASK_TIMEOUT;
     }
 
-    public static Ask createAsk(Object rqst, CompletableFuture future,SvrType svrType) {
+    public static Ask createAsk(Object rqst, CompletableFuture future, ServerType ServerType) {
         Ask<?> ask = ASK_OBJ_POOL_2.get();
         ask.ask = rqst;
         ask.future = future;
         ask.startTime = System.currentTimeMillis();
-        ask.askSvrType = svrType;
+        ask.askServerType = ServerType;
         return ask;
     }
 
@@ -37,7 +37,7 @@ public class Ask<A> {
     private CompletableFuture<A> future;
     private long startTime;
     private ObjectPool.Handle<Ask> handle;
-    private SvrType askSvrType;
+    private ServerType askServerType;
 
     public void complete(A result) {
         future.complete(result);
@@ -55,8 +55,8 @@ public class Ask<A> {
         return future;
     }
 
-    public SvrType getAskSvrType() {
-        return askSvrType;
+    public ServerType getAskServerType() {
+        return askServerType;
     }
 
     public void setAsk(Object ask) {

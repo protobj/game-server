@@ -1,7 +1,8 @@
 package io.protobj.microserver.net.impl.cluster;
 
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
+
+import io.protobj.microserver.net.MQProtocol;
+import io.protobj.microserver.serverregistry.ServerInfo;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;

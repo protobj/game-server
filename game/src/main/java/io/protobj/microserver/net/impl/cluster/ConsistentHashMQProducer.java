@@ -1,18 +1,16 @@
 package io.protobj.microserver.net.impl.cluster;
 
-import com.guangyu.cd003.projects.message.core.net.MQProducer;
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.message.core.net.NetNotActiveException;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.message.core.serverregistry.zk.ServerListener;
-import com.guangyu.cd003.projects.message.core.servicediscrovery.curator.ServerInfoCache;
-import com.guangyu.cd003.projects.microserver.log.ThreadLocalLoggerFactory;
-import com.pv.common.utilities.common.GsonUtil;
-import com.pv.common.utilities.exception.LogicException;
-import com.pv.framework.gs.core.msg.CodeGameServerSys;
+import io.protobj.microserver.net.MQProducer;
+import io.protobj.microserver.net.MQProtocol;
+import io.protobj.microserver.net.NetNotActiveException;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import io.protobj.microserver.serverregistry.zk.ServerListener;
+import io.protobj.microserver.servicediscrovery.curator.ServerInfoCache;
+import io.protobj.util.Jackson;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -37,7 +35,7 @@ import java.util.function.Supplier;
  **/
 public abstract class ConsistentHashMQProducer extends MQProducer<MQProtocol> implements ServerListener {
     public static final int MAX_SLOT = 16384;
-    private final static Logger logger = ThreadLocalLoggerFactory.getLogger(ConsistentHashMQProducer.class);
+    private final static Logger logger = LoggerFactory.getLogger(ConsistentHashMQProducer.class);
 
     private final StampedLock lock = new StampedLock();
 
@@ -158,13 +156,13 @@ public abstract class ConsistentHashMQProducer extends MQProducer<MQProtocol> im
 
     public void create() {
         //集群服务器需要监听每台服务器的状态
-        this.serverInfoCache = new ServerInfoCache(getServerInfo().getSvrType(), getContext().getServiceDiscovery(), this);
+        this.serverInfoCache = new ServerInfoCache(getServerInfo().getServerType(), getContext().getServiceDiscovery(), this);
     }
 
 
     @Override
     public void addOrUpdate(ServerInfo serverInfo) {
-        if (serverInfo.getSvrType() != getServerInfo().getSvrType()) {
+        if (serverInfo.getServerType() != getServerInfo().getServerType()) {
             return;
         }
         //检查slots合法性
@@ -194,17 +192,17 @@ public abstract class ConsistentHashMQProducer extends MQProducer<MQProtocol> im
         }
         clearSlots(clusterProducer.getServerInfo().getSlots());
         closeProducer(clusterProducer);
-        logger.info("stateInitRemove ：{}", GsonUtil.toJSONString(clusterProducer.getServerInfo()));
+        logger.info("stateInitRemove ：{}", Jackson.INSTANCE.encode(clusterProducer.getServerInfo()));
     }
 
     private void stateInitAddOrUpdate(ServerInfo newServerInfo) {
-        logger.info("stateInitAddOrUpdate {}", GsonUtil.toJSONString(newServerInfo));
+        logger.info("stateInitAddOrUpdate {}", Jackson.INSTANCE.encode(newServerInfo));
         ClusterProducer clusterProducer = producerMap.get(newServerInfo.getServerId());
         BitSet slotBits = newServerInfo.getSlotBits();
         //已加入过
         if (clusterProducer != null) {
             ServerInfo oldServerInfo = clusterProducer.getServerInfo();
-            logger.info("加入的节点已存在，原来的状态：{}", GsonUtil.toJSONString(oldServerInfo));
+            logger.info("加入的节点已存在，原来的状态：{}",Jackson.INSTANCE.encode(oldServerInfo));
             if (serverInfoSlotChange(newServerInfo, oldServerInfo)) {
                 //排除自身所占，查询槽点是否已被占用
                 BitSet bitSet = BitSet.valueOf(this.slotFlag.toLongArray());
@@ -292,7 +290,7 @@ public abstract class ConsistentHashMQProducer extends MQProducer<MQProtocol> im
 
     @Override
     public void remove(ServerInfo serverInfo) {
-        if (serverInfo.getSvrType() != getServerInfo().getSvrType()) {
+        if (serverInfo.getServerType() != getServerInfo().getServerType()) {
             return;
         }
         StampedLock stampedLock = this.lock;

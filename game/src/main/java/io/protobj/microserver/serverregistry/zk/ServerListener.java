@@ -1,6 +1,6 @@
 package io.protobj.microserver.serverregistry.zk;
 
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
+import io.protobj.microserver.serverregistry.ServerInfo;
 
 public interface ServerListener {
 

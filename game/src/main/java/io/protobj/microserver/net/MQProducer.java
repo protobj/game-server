@@ -1,6 +1,6 @@
 package io.protobj.microserver.net;
 
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
+import io.protobj.microserver.serverregistry.ServerInfo;
 
 import java.util.concurrent.CompletableFuture;
 

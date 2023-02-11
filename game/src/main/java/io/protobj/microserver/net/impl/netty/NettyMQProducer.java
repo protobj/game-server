@@ -1,23 +1,20 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.common.msg.NtceSvrHeartbeat;
-import com.guangyu.cd003.projects.message.core.net.MQProducer;
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.message.core.net.NetNotActiveException;
-import com.guangyu.cd003.projects.microserver.log.ThreadLocalLoggerFactory;
-import com.pv.common.utilities.exception.LogicException;
-import com.pv.framework.gs.core.msg.CodeGameServerSys;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.concurrent.ScheduledFuture;
+import io.protobj.microserver.net.MQProducer;
+import io.protobj.microserver.net.MQProtocol;
+import io.protobj.microserver.net.NetNotActiveException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class NettyMQProducer extends MQProducer<MQProtocol> {
-    private static final Logger logger = ThreadLocalLoggerFactory.getLogger(NettyMQProducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(NettyMQProducer.class);
 
     private volatile Channel channel;
     private ScheduledFuture<?> scheduledFuture;
@@ -93,8 +90,9 @@ public class NettyMQProducer extends MQProducer<MQProtocol> {
     }
 
     private MQProtocol createHeartbeat() {
-        NtceSvrHeartbeat ntceSvrHeartbeat = new NtceSvrHeartbeat();
-        byte[] encode = getContext().getSerilizer().encode(ntceSvrHeartbeat);
-        return getContext().createProtocol(NtceSvrHeartbeat.class.getSimpleName(), encode, 0, ntceSvrHeartbeat);
+//        NtceSvrHeartbeat ntceSvrHeartbeat = new NtceSvrHeartbeat();
+//        byte[] encode = getContext().getSerilizer().encode(ntceSvrHeartbeat);
+//        return getContext().createProtocol(NtceSvrHeartbeat.class.getSimpleName(), encode, 0, ntceSvrHeartbeat);
+        return null;
     }
 }

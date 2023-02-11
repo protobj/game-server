@@ -1,22 +1,18 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.google.protobuf.UnsafeByteOperations;
-import com.guangyu.cd003.projects.message.common.msg.ConsistenceHashMsg;
-import com.guangyu.cd003.projects.message.common.msg.CrossSvrMsg;
-import com.guangyu.cd003.projects.message.common.msg.NtceSvrRegister;
-import com.guangyu.cd003.projects.message.core.loadbalance.SelectSvrStrategy;
-import com.guangyu.cd003.projects.message.core.net.*;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.message.core.servicediscrovery.IServiceDiscovery;
-import com.pv.common.utilities.common.CommonUtil;
 import io.netty.channel.Channel;
+import io.protobj.microserver.loadbalance.SelectSvrStrategy;
+import io.protobj.microserver.net.*;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import io.protobj.microserver.servicediscrovery.IServiceDiscovery;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 public class NettyMQContext extends MQContext<MQProtocol> {
 
-    private static volatile Map<Integer, InnerNettyConnector> innerNettyConnectors = CommonUtil.createMap();
+    private  static volatile Map<Integer, InnerNettyConnector> innerNettyConnectors = new ConcurrentHashMap<>();
 
     private InnerNettyConnector thisInnerNettyConnector;
 
@@ -32,22 +28,14 @@ public class NettyMQContext extends MQContext<MQProtocol> {
     }
 
     @Override
-    public MQProtocol createProtocol(String msgId, byte[] msg, int ix, CrossSvrMsg crossSvrMsg) {
-        MQProtocol.Builder builder = MQProtocol.newBuilder();
-        builder.setMsgId(msgId);
-        builder.setMsgData(UnsafeByteOperations.unsafeWrap(msg));
-        builder.setMsgix(ix);
-        if (crossSvrMsg instanceof ConsistenceHashMsg) {
-            builder.setMsgKey(((ConsistenceHashMsg) crossSvrMsg).key());
-        }
-        MQProtocol build = builder.build();
-        build.setAsk(crossSvrMsg);
-        return build;
+    public MQProtocol createProtocol(String msgId, byte[] msg, int ix, Object crossSvrMsg) {
+
+        return null;
     }
 
     @Override
     public void recv(String producerName, MQProtocol protocol) {
-        recv(producerName, protocol.getMsgix(), protocol.getMsgId(), protocol.getMsgData().toByteArray(), protocol.getMsgKey());
+        recv(producerName, protocol.getMsgix(), protocol.getMsgId(), protocol.getMsgData(), protocol.getMsgKey());
     }
 
     @Override
@@ -60,7 +48,7 @@ public class NettyMQContext extends MQContext<MQProtocol> {
 
     @Override
     protected MQProducer<MQProtocol> newProducer(ServerInfo serverInfo) {
-        if (serverInfo.getSvrType().getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash) {
+        if (serverInfo.getServerType().getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash) {
             InnerNettyConsistentHashMQProducer mqProducer = new InnerNettyConsistentHashMQProducer();
             mqProducer.setServerInfo(serverInfo);
             mqProducer.setContext(this);
@@ -79,10 +67,10 @@ public class NettyMQContext extends MQContext<MQProtocol> {
 
     Channel createProducerChannel(ServerInfo serverInfo) {
         Channel channel = thisInnerNettyConnector.createClientChannel(serverInfo);
-        NtceSvrRegister msg = new NtceSvrRegister(selfInfo.getFullSvrId(), serverInfo.getFullSvrId());
-        byte[] encode = getSerilizer().encode(msg);
-        MQProtocol protocol = createProtocol(NtceSvrRegister.class.getSimpleName(), encode, 0, msg);
-        channel.writeAndFlush(protocol);
+//TODO        NtceSvrRegister msg = new NtceSvrRegister(selfInfo.getFullSvrId(), serverInfo.getFullSvrId());
+//        byte[] encode = getSerilizer().encode(msg);
+//        MQProtocol protocol = createProtocol(NtceSvrRegister.class.getSimpleName(), encode, 0, msg);
+//        channel.writeAndFlush(protocol);
         return channel;
     }
 }

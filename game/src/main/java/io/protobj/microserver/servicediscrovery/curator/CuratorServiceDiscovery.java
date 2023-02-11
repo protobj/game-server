@@ -1,9 +1,9 @@
 package io.protobj.microserver.servicediscrovery.curator;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
-import com.guangyu.cd003.projects.message.core.loadbalance.SelectSvrStrategy;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.message.core.servicediscrovery.IServiceDiscovery;
+import io.protobj.microserver.ServerType;
+import io.protobj.microserver.loadbalance.SelectSvrStrategy;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import io.protobj.microserver.servicediscrovery.IServiceDiscovery;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
@@ -32,7 +32,7 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
 
     private ServiceDiscovery<ServerInfo> discovery;
 
-    private EnumMap<SvrType, ServiceProvider<ServerInfo>> serverProvider = new EnumMap<>(SvrType.class);
+    private EnumMap<ServerType, ServiceProvider<ServerInfo>> serverProvider = new EnumMap<>(ServerType.class);
 
 
     public CuratorServiceDiscovery(String connectString, String namespace) {
@@ -56,7 +56,7 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
                 .serviceType(ServiceType.DYNAMIC)
                 .registrationTimeUTC(System.currentTimeMillis())
                 .enabled(true)
-                .name(selfInfo.getSvrType().name())
+                .name(selfInfo.getServerType().name())
                 .id(String.valueOf(selfInfo.getServerId()))
                 .build();
     }
@@ -78,8 +78,8 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
         try {
             ServiceInstance<ServerInfo> serviceInstance = createServiceInstance(serverInfo);
             this.discovery.registerService(serviceInstance);
-            Set<SvrType> follows = SvrType.getFollows(serverInfo.getSvrType());
-            for (SvrType follow : follows) {
+            Set<ServerType> follows = ServerType.getFollows(serverInfo.getServerType());
+            for (ServerType follow : follows) {
                 //在provider里监听
                 ServiceProvider<ServerInfo> serviceProvider = this.discovery.serviceProviderBuilder()
                         .executorService(null)
@@ -131,8 +131,8 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
     }
 
     @Override
-    public ServerInfo select(ServerInfo serverInfo, SvrType tgtType) {
-        if (serverInfo.getSvrType() == tgtType && tgtType.getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash){
+    public ServerInfo select(ServerInfo serverInfo, ServerType tgtType) {
+        if (serverInfo.getServerType() == tgtType && tgtType.getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash){
             return serverInfo;
         }
         ServiceProvider<ServerInfo> serverInfoServiceProvider = serverProvider.get(tgtType);
@@ -149,9 +149,9 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
     }
 
     @Override
-    public ServerInfo query(SvrType svrType, String id) {
+    public ServerInfo query(ServerType ServerType, String id) {
         try {
-            ServiceProvider<ServerInfo> serverInfoServiceProvider = serverProvider.get(svrType);
+            ServiceProvider<ServerInfo> serverInfoServiceProvider = serverProvider.get(ServerType);
             if (serverInfoServiceProvider != null) {
                 Collection<ServiceInstance<ServerInfo>> allInstances = serverInfoServiceProvider.getAllInstances();
                 for (ServiceInstance<ServerInfo> allInstance : allInstances) {
@@ -161,7 +161,7 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
                 }
                 return null;
             }
-            ServiceInstance<ServerInfo> instance = discovery.queryForInstance(svrType.name(), id);
+            ServiceInstance<ServerInfo> instance = discovery.queryForInstance(ServerType.name(), id);
             if (instance == null) {
                 return null;
             }
@@ -174,7 +174,7 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
 
     @Override
     public void noteError(ServerInfo serverInfo) {
-        ServiceProvider<ServerInfo> serverInfoServiceProvider = serverProvider.get(serverInfo.getSvrType());
+        ServiceProvider<ServerInfo> serverInfoServiceProvider = serverProvider.get(serverInfo.getServerType());
         try {
             Collection<ServiceInstance<ServerInfo>> allInstances = serverInfoServiceProvider.getAllInstances();
             for (ServiceInstance<ServerInfo> allInstance : allInstances) {
@@ -221,14 +221,14 @@ public class CuratorServiceDiscovery implements IServiceDiscovery {
     }
 
     @Override
-    public ServiceCache<ServerInfo> newServiceCache(SvrType svrType) {
+    public ServiceCache<ServerInfo> newServiceCache(ServerType ServerType) {
         return discovery.serviceCacheBuilder()
-                .name(svrType.name())
+                .name(ServerType.name())
                 .build();
     }
 
     @Override
-    public void closeServerCache(SvrType type) {
+    public void closeServerCache(ServerType type) {
         ServiceProvider<ServerInfo> remove = serverProvider.remove(type);
         if (remove != null) {
             try {

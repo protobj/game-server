@@ -1,6 +1,6 @@
 package io.protobj.microserver.net;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
+import io.protobj.microserver.ServerType;
 
 /**
  * Created on 2021/7/6.
@@ -13,5 +13,5 @@ public interface LoadDataBean {
 
     void unload(int gid);
 
-    SvrType svrType();
+    ServerType ServerType();
 }

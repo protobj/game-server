@@ -1,9 +1,9 @@
 package io.protobj.microserver.serverregistry;
 
-import com.alibaba.fastjson.annotation.JSONField;
-import com.guangyu.cd003.projects.message.core.SvrState;
-import com.guangyu.cd003.projects.message.core.SvrType;
-import com.guangyu.cd003.projects.message.core.loadbalance.SelectSvrStrategy;
+
+import io.protobj.microserver.ServerType;
+import io.protobj.microserver.SvrState;
+import io.protobj.microserver.loadbalance.SelectSvrStrategy;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -19,7 +19,7 @@ public class ServerInfo {
     private int serverId;
     //服务器组id== 一种用途是8个游戏服为一个联盟服务器,
     private int groupId;
-    private SvrType svrType;
+    private ServerType ServerType;
     //服务器负载率，该值由所在服务器计算，越小越好
     private int loadRate;
     //服务器状态 -1关闭:0:正常 1:维护
@@ -35,11 +35,11 @@ public class ServerInfo {
 
     public ServerInfo init() {
 
-        fullSvrId = svrType.toFullSvrId(serverId);
+        fullSvrId = ServerType.toFullSvrId(serverId);
         if (slots == null) {
             slots = new ArrayList<>();
         }
-        if (svrType.getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash) {
+        if (ServerType.getSelectSvrStrategy() == SelectSvrStrategy.ConsistentHash) {
             slotBits = new BitSet();
             for (int i = 0; i < slots.size(); i += 2) {
                 slotBits.set(slots.get(i), slots.get(i + 1) + 1);
@@ -48,7 +48,6 @@ public class ServerInfo {
         return this;
     }
 
-    @JSONField(serialize = false)
     public BitSet getSlotBits() {
         return slotBits;
     }
@@ -57,9 +56,8 @@ public class ServerInfo {
      * 获取发现该服务器的消息队列
      *
      */
-    @JSONField(serialize = false)
     public String getTopic() {
-        return String.format("non-persistent://public/default/%s_%s", svrType.name(), serverId);
+        return String.format("non-persistent://public/default/%s_%s", ServerType.name(), serverId);
     }
 
     public boolean isUp() {
@@ -99,12 +97,12 @@ public class ServerInfo {
         this.loadRate++;
     }
 
-    public SvrType getSvrType() {
-        return svrType;
+    public ServerType getServerType() {
+        return ServerType;
     }
 
-    public void setSvrType(SvrType svrType) {
-        this.svrType = svrType;
+    public void setServerType(ServerType ServerType) {
+        this.ServerType = ServerType;
     }
 
 
@@ -152,7 +150,6 @@ public class ServerInfo {
     public void setPort(int port) {
         this.port = port;
     }
-    @JSONField(serialize = false)
     public String getFullSvrId() {
         return fullSvrId;
     }

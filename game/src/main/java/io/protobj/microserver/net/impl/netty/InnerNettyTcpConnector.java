@@ -1,13 +1,12 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.core.net.MQSerilizer;
-import com.guangyu.cd003.projects.microserver.log.ThreadLocalLoggerFactory;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ServerChannel;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.socket.SocketChannel;
@@ -15,6 +14,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.protobj.microserver.net.MQSerilizer;
 import org.slf4j.Logger;
 
 public class InnerNettyTcpConnector extends InnerNettyConnector {
@@ -25,17 +25,17 @@ public class InnerNettyTcpConnector extends InnerNettyConnector {
 
     @Override
     public void init(String host, int port) {
-        boolean useEpoll = nettyConfig.isUseEpoll();
+        boolean useEpoll = Epoll.isAvailable();
         try {
 
             Class<? extends ServerChannel> serverChannelClass = getServerChannelClass(useEpoll);
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup).channel(serverChannelClass)
                     .handler(new LoggingHandler(LogLevel.DEBUG))
-                    .option(ChannelOption.SO_BACKLOG, nettyConfig.getSoBackLog())
-                    .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.isSoKeepAlive())
-                    .childOption(ChannelOption.SO_LINGER, nettyConfig.getSoLinger())
-                    .childOption(ChannelOption.TCP_NODELAY, nettyConfig.isTcpNoDelay())
+                    .option(ChannelOption.SO_BACKLOG, 1024)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true)
+                    .childOption(ChannelOption.SO_LINGER, 0)
+                    .childOption(ChannelOption.TCP_NODELAY,true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
@@ -50,9 +50,9 @@ public class InnerNettyTcpConnector extends InnerNettyConnector {
             clientBootstrap.group(workerGroup)
                     .channel(clientChannelClass)
                     .handler(new LoggingHandler(LogLevel.DEBUG))
-                    .option(ChannelOption.SO_KEEPALIVE, nettyConfig.isSoKeepAlive())
-                    .option(ChannelOption.SO_LINGER, nettyConfig.getSoLinger())
-                    .option(ChannelOption.TCP_NODELAY, nettyConfig.isTcpNoDelay())
+                    .option(ChannelOption.SO_KEEPALIVE,true)
+                    .option(ChannelOption.SO_LINGER, 0)
+                    .option(ChannelOption.TCP_NODELAY, true)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override

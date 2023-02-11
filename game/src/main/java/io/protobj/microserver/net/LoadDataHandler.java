@@ -1,12 +1,12 @@
 package io.protobj.microserver.net;
 
-import com.guangyu.cd003.projects.message.core.SvrType;
+import io.protobj.microserver.ServerType;
 
 public interface LoadDataHandler {
 
-    default void load(SvrType svrType, int gid) {
+    default void load(ServerType ServerType, int gid) {
     }
 
-    default void unload(SvrType svrType, int sid) {
+    default void unload(ServerType ServerType, int sid) {
     }
 }

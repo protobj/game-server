@@ -1,33 +1,31 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.message.core.net.MQSerilizer;
-import com.guangyu.cd003.projects.message.core.net.NetNotActiveException;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.guangyu.cd003.projects.microserver.log.ThreadLocalLoggerFactory;
-import com.pv.common.net.netty.NettyConfig;
-import com.pv.common.utilities.common.CommonUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.protobj.microserver.net.MQSerilizer;
+import io.protobj.microserver.net.NetNotActiveException;
+import io.protobj.microserver.serverregistry.ServerInfo;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class InnerNettyConnector {
 
-    private static final Logger logger = ThreadLocalLoggerFactory.getLogger(InnerNettyConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerNettyConnector.class);
 
     protected EventLoopGroup bossGroup;
 
@@ -35,25 +33,22 @@ public abstract class InnerNettyConnector {
 
     protected MQSerilizer mqSerilizer;
 
-    Map<String, NettyConsumer> bindConsumers = CommonUtil.createMap();
+    Map<String, NettyConsumer> bindConsumers = new ConcurrentHashMap<>();
 
     protected Bootstrap clientBootstrap;
     InnerNettyClientHandler innerNettyClientHandler = new InnerNettyClientHandler();
     InnerNettyServerHandler innerNettyServerHandler = new InnerNettyServerHandler(this);
 
-    NettyConfig nettyConfig = new NettyConfig();
 
     public InnerNettyConnector(MQSerilizer mqSerilizer) {
         this.mqSerilizer = mqSerilizer;
-        DefaultThreadFactory bossThreadFactory = new DefaultThreadFactory(
-                String.format(nettyConfig.getBossThreadNamePattern(), "inner-netty-boss"));
-        bossGroup = nettyConfig.isUseEpoll() ? new EpollEventLoopGroup(1, bossThreadFactory)
+        DefaultThreadFactory bossThreadFactory = new DefaultThreadFactory("inner-netty-boss");
+        bossGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(1, bossThreadFactory)
                 : new NioEventLoopGroup(1, bossThreadFactory); // (1)
 
-        DefaultThreadFactory workerThreadFactory = new DefaultThreadFactory(
-                String.format(nettyConfig.getWorkerThreadNamePattern(), "inner-netty-worker"));
-        int workerThreads = nettyConfig.getWorkerThreads();
-        workerGroup = nettyConfig.isUseEpoll() ? new EpollEventLoopGroup(workerThreads, workerThreadFactory)
+        DefaultThreadFactory workerThreadFactory = new DefaultThreadFactory("inner-netty-worker");
+        int workerThreads = Runtime.getRuntime().availableProcessors() - 1;
+        workerGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(workerThreads, workerThreadFactory)
                 : new NioEventLoopGroup(workerThreads, workerThreadFactory);
 
     }
@@ -95,10 +90,10 @@ public abstract class InnerNettyConnector {
 
 
     protected void initPipeline(ChannelPipeline p) {
-        int readIdleTimeout = nettyConfig.getReadIdleTimeout();
-        int writeIdleTimeout = nettyConfig.getWriteIdleTimeout();
-        int allIdleTimeout = nettyConfig.getReadIdleTimeout();
-        int writeTimeout = nettyConfig.getWriteTimeout();
+        int readIdleTimeout = 3000;
+        int writeIdleTimeout = 3000;
+        int allIdleTimeout = 3000;
+        int writeTimeout = 3000;
         if (readIdleTimeout > 0 || writeIdleTimeout > 0 || allIdleTimeout > 0) {
             p.addLast("idle", new IdleStateHandler(Math.max(0, readIdleTimeout), Math.max(0, writeIdleTimeout),
                     Math.max(0, allIdleTimeout)));
@@ -106,7 +101,7 @@ public abstract class InnerNettyConnector {
         if (writeTimeout > 0)
             p.addLast("write", new WriteTimeoutHandler(Math.max(0, writeTimeout)));
         p.addLast(new ProtobufVarint32FrameDecoder());
-        p.addLast(new ProtobufDecoder(MQProtocol.getDefaultInstance()));
+//TODO        p.addLast(new ProtobufDecoder(MQProtocol.getDefaultInstance()));
         p.addLast(new ProtobufVarint32LengthFieldPrepender());
         p.addLast(new ProtobufEncoder());
 

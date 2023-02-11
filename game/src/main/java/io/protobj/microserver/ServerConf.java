@@ -1,19 +1,19 @@
 package io.protobj.microserver;
 
 public class ServerConf {
-    private ServerType svrType;
+    private ServerType ServerType;
 
     private int svrId;
 
     private String slots;
 
 
-    public ServerType getSvrType() {
-        return svrType;
+    public ServerType getServerType() {
+        return ServerType;
     }
 
-    public void setSvrType(ServerType svrType) {
-        this.svrType = svrType;
+    public void setServerType(ServerType ServerType) {
+        this.ServerType = ServerType;
     }
 
     public int getSvrId() {

@@ -1,38 +1,36 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.common.msg.NtceSvrHeartbeat;
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.microserver.log.ThreadLocalLoggerFactory;
-import io.jpower.kcp.netty.UkcpChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.protobj.microserver.net.MQProtocol;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 @ChannelHandler.Sharable
 public class InnerNettyClientHandler extends SimpleChannelInboundHandler<MQProtocol> {
 
-    private static final Logger logger = ThreadLocalLoggerFactory.getLogger(InnerNettyClientHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(InnerNettyClientHandler.class);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         Channel channel = ctx.channel();
-        if (channel instanceof UkcpChannel) {
-            ((UkcpChannel) channel).conv(10);
-        }
+//        if (channel instanceof UkcpChannel) {
+//            ((UkcpChannel) channel).conv(10);
+//        }
         super.channelActive(ctx);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, MQProtocol protocol) throws Exception {
         //不需要收消息
-        if (!protocol.getMsgId().equals(NtceSvrHeartbeat.class.getSimpleName())) {
-            logger.error("收到消息：{}", protocol.getMsgId());
-        }
+//        if (!protocol.getMsgId().equals(NtceSvrHeartbeat.class.getSimpleName())) {
+//            logger.error("收到消息：{}", protocol.getMsgId());
+//        }
     }
 
     @Override

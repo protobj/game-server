@@ -1,11 +1,10 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.common.msg.NtceSvrRegister;
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
-import com.guangyu.cd003.projects.message.core.net.impl.cluster.ClusterProducer;
-import com.guangyu.cd003.projects.message.core.net.impl.cluster.ConsistentHashMQProducer;
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
 import io.netty.channel.Channel;
+import io.protobj.microserver.net.MQProtocol;
+import io.protobj.microserver.net.impl.cluster.ClusterProducer;
+import io.protobj.microserver.net.impl.cluster.ConsistentHashMQProducer;
+import io.protobj.microserver.serverregistry.ServerInfo;
 
 public class InnerNettyConsistentHashMQProducer extends ConsistentHashMQProducer {
 
@@ -21,11 +20,11 @@ public class InnerNettyConsistentHashMQProducer extends ConsistentHashMQProducer
         innerNettyClusterProducer.setServerInfo(newServerInfo);
         innerNettyClusterProducer.setContext(getContext());
         Channel producer = innerNettyTcpConnector.createClientChannel(newServerInfo);
-        NtceSvrRegister msg = new NtceSvrRegister(getContext().getSelfInfo().getFullSvrId(), newServerInfo.getFullSvrId());
-        byte[] encode = getContext().getSerilizer().encode(msg);
-        MQProtocol protocol = getContext().createProtocol(NtceSvrRegister.class.getSimpleName(), encode, 0, msg);
-        producer.writeAndFlush(protocol);
-        innerNettyClusterProducer.setChannel(producer);
+//TODO        NtceSvrRegister msg = new NtceSvrRegister(getContext().getSelfInfo().getFullSvrId(), newServerInfo.getFullSvrId());
+//        byte[] encode = getContext().getSerilizer().encode(msg);
+//        MQProtocol protocol = getContext().createProtocol(NtceSvrRegister.class.getSimpleName(), encode, 0, msg);
+//        producer.writeAndFlush(protocol);
+//        innerNettyClusterProducer.setChannel(producer);
         return innerNettyClusterProducer;
     }
 }

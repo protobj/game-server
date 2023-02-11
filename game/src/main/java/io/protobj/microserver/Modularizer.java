@@ -7,5 +7,5 @@ package io.protobj.microserver;
  */
 public interface Modularizer{
 
-    SvrType svrType();//属于哪个模块
+    ServerType ServerType();//属于哪个模块
 }

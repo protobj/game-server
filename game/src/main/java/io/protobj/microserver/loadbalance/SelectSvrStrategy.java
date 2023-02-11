@@ -1,7 +1,7 @@
 package io.protobj.microserver.loadbalance;
 
-import com.guangyu.cd003.projects.message.core.serverregistry.ServerInfo;
-import com.pv.framework.gs.core.util.RandomUtils;
+import io.protobj.microserver.serverregistry.ServerInfo;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -48,7 +48,7 @@ public enum SelectSvrStrategy {
     ConsistentHash {
         @Override
         public ServerInfo select(ServerInfo selfInfo, List<ServerInfo> serverInfos) {
-            return RandomUtils.random(serverInfos);
+            return serverInfos.get(RandomUtils.nextInt(0, serverInfos.size()));
         }
     },
     //只能通过id访问

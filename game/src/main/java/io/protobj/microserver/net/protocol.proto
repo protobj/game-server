@@ -1,6 +1,6 @@
 syntax = "proto3";
 option java_multiple_files = true;
-package com.guangyu.cd003.projects.message.core.net;
+package io.protobj.microserver.net;
 
 message MQProtocol {
   string msgId = 1;//消息id，图省事直接用消息的简单类名

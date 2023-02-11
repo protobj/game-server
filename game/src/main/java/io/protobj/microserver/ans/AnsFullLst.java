@@ -1,55 +1,53 @@
 package io.protobj.microserver.ans;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import com.guangyu.cd003.projects.message.common.msg.CrossSvrMsg;
-import com.pv.common.utilities.common.CommonUtil;
-import com.pv.framework.gs.core.module.msgproc.IRespMsg;
 
-public class AnsFullLst implements IRespMsg, CrossSvrMsg {
+public class AnsFullLst {
 
-    private List<CrossSvrMsg> answers;
+    private List<Object> answers;
 
     public AnsFullLst() {
     }
 
-    public AnsFullLst(List<CrossSvrMsg> answers) {
+    public AnsFullLst(List<Object> answers) {
         this.answers = answers;
     }
 
-    public List<CrossSvrMsg> getAnswers() {
+    public List<Object> getAnswers() {
         return answers;
     }
 
-    public void setAnswers(List<CrossSvrMsg> answers) {
+    public void setAnswers(List<Object> answers) {
         this.answers = answers;
     }
 
-    public void addAnswer(CrossSvrMsg answer) {
+    public void addAnswer(Object answer) {
         if (answers == null) {
-            answers = CommonUtil.createList();
+            answers = new ArrayList<>();
         }
         answers.add(answer);
     }
 
     public <T> T answerAt(int ix) {
-        return answers.get(ix).as();
+        return (T) answers.get(ix);
     }
 
-    public <T extends CrossSvrMsg> T answerAt(int ix, Class<T> clz) {
-        return answers.get(ix).as(clz);
+    public <T> T answerAt(int ix, Class<T> clz) {
+        return clz.cast(answers.get(ix));
     }
-    
-    
+
+
     @SuppressWarnings("unchecked")
-	public <T extends CrossSvrMsg> T answerAt(Class<T> clz) {
-    	for (CrossSvrMsg crossSvrMsg : answers) {
-			if (clz.isInstance(crossSvrMsg)) {
-				return ((T) crossSvrMsg);
-			}
-		}
+    public <T> T answerAt(Class<T> clz) {
+        for (Object crossSvrMsg : answers) {
+            if (clz.isInstance(crossSvrMsg)) {
+                return ((T) crossSvrMsg);
+            }
+        }
         return null;
     }
-    
+
 
 }

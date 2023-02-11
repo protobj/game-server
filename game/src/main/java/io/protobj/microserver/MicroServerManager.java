@@ -37,12 +37,12 @@ public class MicroServerManager {
 
     private final Map<String, Server> microServers = new ConcurrentHashMap<>();//开启的服务器
 
-    public CompletableFuture<?> startServer(ServerType svrType, int id, Properties properties) {
+    public CompletableFuture<?> startServer(ServerType ServerType, int id, Properties properties) {
         try {
             long startTime = System.currentTimeMillis();
             Class<?> aClass = Class.forName(properties.getProperty(BOOTSTRAP_CLASS));
-            Server microServer = (Server) aClass.getConstructor(ServerType.class, int.class).newInstance(svrType, id);
-            String key = svrType.toFullSvrId(id);
+            Server microServer = (Server) aClass.getConstructor(ServerType.class, int.class).newInstance(ServerType, id);
+            String key = ServerType.toFullSvrId(id);
             microServers.put(key, microServer);
             return microServer.start().thenRun(() -> {
                 logger.warn("{} 启动耗时 : {}ms", key, System.currentTimeMillis() - startTime);
@@ -59,16 +59,16 @@ public class MicroServerManager {
         }
     }
 
-    public CompletableFuture<?> stopServer(ServerType svrType, int id) {
-        AServer microServer = microServers.get(svrType.toFullSvrId(id));
+    public CompletableFuture<?> stopServer(ServerType ServerType, int id) {
+        AServer microServer = microServers.get(ServerType.toFullSvrId(id));
         if (microServer != null) {
             return microServer.stop().thenApplyAsync(t -> {
-                microServers.remove(svrType.toFullSvrId(id));
-                System.out.printf("关闭服务 %s%n", svrType.toFullSvrId(id));
+                microServers.remove(ServerType.toFullSvrId(id));
+                System.out.printf("关闭服务 %s%n", ServerType.toFullSvrId(id));
                 return t;
             }).exceptionally(e -> {
                 e.printStackTrace();
-                System.out.printf("关闭服务失败 %s%n", svrType.toFullSvrId(id));
+                System.out.printf("关闭服务失败 %s%n", ServerType.toFullSvrId(id));
                 return null;
             });
         }
@@ -88,13 +88,13 @@ public class MicroServerManager {
     public void initAndStart(List<ServerConf> svrConfList, Properties prop) {
         init(prop);
         for (ServerConf svrConf : svrConfList) {
-            ServerType svrType = svrConf.getSvrType();
+            ServerType ServerType = svrConf.getServerType();
             Properties properties = (Properties) prop.clone();
             if (svrConf.getSlots() != null) {
                 properties.setProperty(MicroServerManager.MICRO_SERVER_SLOTS, svrConf.getSlots());
             }
-//            properties.put(BOOTSTRAP_CLASS, svrType.getBootstrapClass());
-            startServer(svrType, svrConf.getSvrId(), properties).join();
+//            properties.put(BOOTSTRAP_CLASS, ServerType.getBootstrapClass());
+            startServer(ServerType, svrConf.getSvrId(), properties).join();
         }
     }
 }

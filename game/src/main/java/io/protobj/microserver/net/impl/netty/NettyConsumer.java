@@ -1,7 +1,8 @@
 package io.protobj.microserver.net.impl.netty;
 
-import com.guangyu.cd003.projects.message.core.net.MQConsumer;
-import com.guangyu.cd003.projects.message.core.net.MQProtocol;
+
+import io.protobj.microserver.net.MQConsumer;
+import io.protobj.microserver.net.MQProtocol;
 
 public class NettyConsumer extends MQConsumer<MQProtocol> {
 
