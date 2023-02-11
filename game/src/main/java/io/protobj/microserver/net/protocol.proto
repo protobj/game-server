@@ -1,0 +1,10 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package com.guangyu.cd003.projects.message.core.net;
+
+message MQProtocol {
+  string msgId = 1;//消息id，图省事直接用消息的简单类名
+  bytes msgData = 2;//消息数据
+  int32 msgix = 3;//消息序列号
+  int64 msgKey = 4;//一致性hash时用的key,行会消息就设置为行会id
+}
