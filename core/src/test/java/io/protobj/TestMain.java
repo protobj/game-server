@@ -1,10 +1,7 @@
 package io.protobj;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.core.json.JsonWriteFeature;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.Channel;
 import io.protobj.enhance.EnhanceClassCache;
 import io.protobj.event.EventBus;
@@ -25,10 +22,9 @@ import io.protobj.scheduler.HashedWheelTimer;
 import io.protobj.scheduler.SchedulerService;
 import io.protobj.user.UserModule;
 import io.protobj.user.service.UserService;
+import io.protobj.util.Jackson;
 
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,7 +84,7 @@ public class TestMain implements IServer {
         JsonNode path1 = jsonNode.path("0.hp");
         System.err.println(path1.toString());
         TableContainer<Integer, TestResource> tableContainer = new TableContainer<>(TestResource.class);
-        JackSonImpl jackSon = new JackSonImpl();
+        Json jackSon = Jackson.INSTANCE;
         TableContainer<Integer, TestResource> load = tableContainer.load(Path.of("C:\\Users\\79871\\GolandProjects\\excel-convert\\json\\server\\testresource.json"), jackSon);
         System.err.println();
     }
@@ -180,10 +176,6 @@ public class TestMain implements IServer {
         return null;
     }
 
-    @Override
-    public NettyGateClient getNettyGateClient() {
-        return null;
-    }
 
     ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -209,63 +201,6 @@ public class TestMain implements IServer {
     public SchedulerService schedulerService() {
 
         return schedulerService;
-    }
-
-    public static class JackSonImpl implements Json {
-        private ObjectMapper objectMapper = new ObjectMapper();
-
-        public JackSonImpl() {
-            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            objectMapper.configure(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES.mappedFeature(), true);
-            objectMapper.configure(JsonWriteFeature.QUOTE_FIELD_NAMES.mappedFeature(), false);
-        }
-
-        @Override
-        public String encode(Object obj) {
-            try {
-                return objectMapper.writeValueAsString(obj);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public <T> T decode(String json, Class<T> valueType) {
-            try {
-                return objectMapper.readValue(json, valueType);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public Object decode(String json, Type type) {
-            final JavaType javaType = objectMapper.getTypeFactory().constructType(type);
-            try {
-                return objectMapper.readValue(json, javaType);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public <T> T decode(String json, TypeReference<T> valueType) {
-            try {
-                return objectMapper.readValue(json, valueType);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public JsonNode readTree(File file) throws IOException {
-            try {
-                return objectMapper.readTree(file);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     public static class TestResource {

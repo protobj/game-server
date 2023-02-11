@@ -10,8 +10,6 @@ public class RedisConfig {
 
     private String passwd;
 
-    private String pkg = "com.cq.";
-
     public String getHost() {
         return host;
     }
@@ -46,11 +44,4 @@ public class RedisConfig {
         this.passwd = passwd;
     }
 
-    public String getPkg() {
-        return pkg;
-    }
-
-    public void setPkg(String pkg) {
-        this.pkg = pkg;
-    }
 }

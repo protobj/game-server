@@ -1,5 +1,6 @@
 package io.protobj.redisaccessor;
 
+import io.protobj.Module;
 import io.protobj.redisaccessor.config.RedisConfig;
 import io.protobj.redisaccessor.datasource.LettuceRedisDataSource;
 import io.protobj.redisaccessor.util.PersistenceRedisHelper;
@@ -26,10 +27,10 @@ public class DefaultRedisAccessor implements RedisAccessor {
     }
 
     @Override
-    public void init() throws Exception {
+    public void init(List<Module> moduleList) throws Exception {
         this.namespace = "{" + redisConfig.getNamespace() + "}";
         this.dataSource = new LettuceRedisDataSource();
-        dataSource.init(redisConfig);
+        dataSource.init(moduleList, redisConfig);
     }
 
     protected Map<FieldId, FieldValue> loadAll(KeyId keyId, Map<byte[], FieldValue> re) {
@@ -79,8 +80,8 @@ public class DefaultRedisAccessor implements RedisAccessor {
     }
 
     @Override
-    public void close() {
-        dataSource.close();
+    public Mono<?> close() {
+        return dataSource.close();
     }
 
     public String getNamespace() {

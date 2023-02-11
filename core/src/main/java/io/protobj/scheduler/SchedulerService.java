@@ -114,4 +114,7 @@ public class SchedulerService {
     }
 
 
+    public void shutDown() {
+        timer.shutdown();
+    }
 }

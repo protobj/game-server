@@ -1,9 +1,5 @@
 package io.protobj.redisaccessor.datasource;
 
-import io.protobj.redisaccessor.FieldValue;
-import io.protobj.redisaccessor.RedisDataSource;
-import io.protobj.redisaccessor.config.RedisConfig;
-import io.protobj.redisaccessor.serializer.FieldValueCodec;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.RedisClient;
@@ -14,6 +10,11 @@ import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.CompressionCodec;
 import io.lettuce.core.codec.RedisCodec;
 import io.netty.util.internal.StringUtil;
+import io.protobj.Module;
+import io.protobj.redisaccessor.FieldValue;
+import io.protobj.redisaccessor.RedisDataSource;
+import io.protobj.redisaccessor.config.RedisConfig;
+import io.protobj.redisaccessor.serializer.FieldValueCodec;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -24,12 +25,12 @@ public class LettuceRedisDataSource implements RedisDataSource {
     private RedisReactiveCommands<byte[], FieldValue> connection;
 
     @Override
-    public void init(RedisConfig redisConfig) {
+    public void init(List<Module> moduleList, RedisConfig redisConfig) {
         RedisClient redisClient = RedisClient
                 .create("redis://%s:%d/0".formatted(redisConfig.getHost(), redisConfig.getPort()));
         StatefulRedisConnection<byte[], FieldValue> redisConnection = redisClient.connect(
                 RedisCodec.of(ByteArrayCodec.INSTANCE, CompressionCodec.valueCompressor(
-                        new FieldValueCodec(redisConfig.getPkg()), CompressionCodec.CompressionType.GZIP)));
+                        new FieldValueCodec(moduleList), CompressionCodec.CompressionType.GZIP)));
         if (!StringUtil.isNullOrEmpty(redisConfig.getPasswd())) {
             redisConnection.sync().auth(redisConfig.getPasswd());
         }
@@ -79,10 +80,11 @@ public class LettuceRedisDataSource implements RedisDataSource {
     }
 
     @Override
-    public void close() {
+    public Mono<?> close() {
         if (connection != null) {
             connection.shutdown(true);
         }
+        return Mono.empty();
     }
 
 }

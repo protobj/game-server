@@ -4,7 +4,7 @@ import io.protobj.Json;
 
 public class ResourceConfig {
 
-    private String resourcePath = "resource/";
+    private String resourcePath = "resources/";
 
 
     private String reloadPath = "reload/resource/";

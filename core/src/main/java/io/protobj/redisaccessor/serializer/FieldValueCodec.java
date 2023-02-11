@@ -1,28 +1,34 @@
 package io.protobj.redisaccessor.serializer;
 
-import io.protobj.redisaccessor.anno.Value;
+import io.lettuce.core.codec.RedisCodec;
+import io.protobj.IServer;
+import io.protobj.Module;
 import io.protobj.redisaccessor.FieldDesc;
 import io.protobj.redisaccessor.FieldValue;
-import io.lettuce.core.codec.RedisCodec;
+import io.protobj.redisaccessor.anno.Value;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 import org.reflections.Reflections;
+import org.reflections.scanners.Scanners;
+import org.reflections.util.ConfigurationBuilder;
 
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class FieldValueCodec implements RedisCodec<byte[], FieldValue> {
 
     private final Map<Short, Schema<?>> schemaMap = new HashMap<>();
 
-    public FieldValueCodec(String pkg) {
-        Reflections reflections = new Reflections(pkg);
+    public FieldValueCodec(List<Module> moduleList) {
+        ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.addScanners(Scanners.SubTypes);
+        for (Module module : moduleList) {
+            configurationBuilder.forPackages(module.getClass().getPackage().getName() + "." + IServer.ENTITY_PACKAGE);
+        }
+        Reflections reflections = new Reflections(configurationBuilder);
         Set<Class<? extends FieldValue>> subTypesOf = reflections.getSubTypesOf(FieldValue.class);
         for (Class<? extends FieldValue> aClass : subTypesOf) {
             if (Modifier.isAbstract(aClass.getModifiers()) || Modifier.isInterface(aClass.getModifiers())) {

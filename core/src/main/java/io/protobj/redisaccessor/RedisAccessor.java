@@ -1,12 +1,13 @@
 package io.protobj.redisaccessor;
 
-import io.protobj.redisaccessor.config.RedisConfig;
+import io.protobj.Module;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 
 public interface RedisAccessor {
-    void init() throws Exception;
+    void init(List<Module> moduleList) throws Exception;
 
     Mono<Map<KeyId, Map<FieldId, FieldValue>>> getAllAsync(KeyDesc keyDesc);
 
@@ -16,5 +17,5 @@ public interface RedisAccessor {
 
     Mono<FieldValue> save(FieldValue fieldValue);
 
-    void close();
+    Mono<?> close();
 }

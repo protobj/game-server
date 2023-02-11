@@ -27,44 +27,34 @@ import java.util.concurrent.Executors;
 
 public abstract class AServer implements IServer {
 
-
-    private final Executor managerExecutor;
-
-    protected ApplicationContext springContext;
-
     protected Configuration configuration;
-
     protected ThreadGroup threadGroup;
-
     private final EnhanceClassCache classCache;
+    private Executor managerExecutor;
 
-    private final EventBus eventBus;
+    private ApplicationContext springContext;
 
-    private final ResourceManager resourceManager;
+    private EventBus eventBus;
 
-    private final RedisAccessor redisAccessor;
+    private ResourceManager resourceManager;
 
-    private final HotSwapManger hotSwapManger;
+    private RedisAccessor redisAccessor;
 
-    private final Executor logicExecutor;
+    private HotSwapManger hotSwapManger;
 
-    private final SchedulerService schedulerService;
+    private Executor logicExecutor;
 
-    public AServer(Configuration configuration, ThreadGroup threadGroup) {
-        this.configuration = configuration;
-        this.threadGroup = threadGroup;
+    private SchedulerService schedulerService;
+
+    public AServer() {
         this.classCache = new EnhanceClassCache();
-        this.eventBus = new DefaultEventBus();
-        this.resourceManager = new ResourceManager(configuration.getResourceConfig());
-        this.redisAccessor = new DefaultRedisAccessor(configuration.getRedisConfig());
-        this.hotSwapManger = new HotSwapManger(configuration.getHotSwap());
-        this.managerExecutor = Executors.newSingleThreadExecutor(CustomThreadFactory.create(threadGroup, configuration.getName() + "-manage"));
-        this.schedulerService = new SchedulerService();
-        this.logicExecutor = new ExecutorGroup(threadGroup, "LOGIC", Runtime.getRuntime().availableProcessors() - 1);
     }
 
-    public CompletableFuture<?> init() {
+    public CompletableFuture<?> start() {
+        this.managerExecutor = Executors.newSingleThreadExecutor(CustomThreadFactory.create(threadGroup, configuration.getName() + "-manage"));
+        this.logicExecutor = new ExecutorGroup(threadGroup, "LOGIC", Runtime.getRuntime().availableProcessors() - 1);
         return CompletableFuture.runAsync(() -> {
+            preStart();
             startSpring();
             Map<String, Module> moduleMap = springContext.getBeansOfType(Module.class);
             List<Module> modules = moduleMap.values().stream().toList();
@@ -73,8 +63,13 @@ public abstract class AServer implements IServer {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+            postStart();
         }, this.managerExecutor);
     }
+
+    protected abstract void preStart();
+
+    protected abstract void postStart();
 
     protected void start0(List<Module> modules) throws Exception {
         initEventBus(modules);
@@ -82,25 +77,36 @@ public abstract class AServer implements IServer {
         initRedisAccessor(modules);
         initHotSwapManager(modules);
         initSchedulerService(modules);
+        initNet();
     }
 
+    protected abstract void initNet();
+
     protected void initSchedulerService(List<Module> modules) {
+        this.schedulerService = new SchedulerService();
         schedulerService.init(modules, this);
     }
 
     protected void initHotSwapManager(List<Module> modules) {
+        this.hotSwapManger = new HotSwapManger(configuration.getHotSwap());
         hotSwapManger.start();
     }
 
     protected void initRedisAccessor(List<Module> modules) throws Exception {
-        redisAccessor.init();
+        this.redisAccessor = new DefaultRedisAccessor(configuration.getRedis());
+
+        redisAccessor.init(modules);
     }
 
     protected void initResourceManager(List<Module> modules) {
+        this.resourceManager = new ResourceManager(configuration.getResource());
+
         resourceManager.loadResource(modules, this, false);
     }
 
     protected void initEventBus(List<Module> modules) {
+        this.eventBus = new DefaultEventBus();
+
         eventBus.register(modules, this);
     }
 
@@ -124,6 +130,12 @@ public abstract class AServer implements IServer {
         Reflections reflections = new Reflections(configurationBuilder);
         Set<Class<?>> classes = reflections.getTypesAnnotatedWith(org.springframework.context.annotation.Configuration.class);
         return new ArrayList<>(classes);
+    }
+
+    public CompletableFuture<?> stop() {
+        schedulerService.shutDown();
+        return redisAccessor.close()
+                .toFuture();
     }
 
     @Override

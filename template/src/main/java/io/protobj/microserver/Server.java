@@ -1,12 +1,40 @@
 package io.protobj.microserver;
 
 import io.protobj.AServer;
-import io.protobj.Configuration;
 
-public abstract class Server extends AServer {
+public class Server extends AServer {
 
+    private final ServerType serverType;
 
-    public Server(Configuration configuration, ThreadGroup threadGroup) {
-        super(configuration, threadGroup);
+    private final int sid;
+
+    public Server(ServerType serverType, int sid) {
+        this.serverType = serverType;
+        this.sid = sid;
     }
+
+    @Override
+    protected void preStart() {
+
+    }
+
+    @Override
+    protected void postStart() {
+
+    }
+
+    @Override
+    protected void initNet() {
+
+    }
+
+    public ServerType getServerType() {
+        return serverType;
+    }
+
+
+    public int getSid() {
+        return sid;
+    }
+
 }

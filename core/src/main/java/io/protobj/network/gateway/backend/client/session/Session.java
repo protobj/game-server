@@ -1,12 +1,16 @@
 package io.protobj.network.gateway.backend.client.session;
 
+import io.netty.channel.Channel;
+
 import java.util.concurrent.Executor;
 
 public abstract class Session {
     private int channelId;
     private volatile Executor executor;
 
-    public abstract void sendMsg(int index, Object msg);
+    public void sendMsg(int index, Object msg) {
+
+    }
 
     public void sendMsg(Object msg) {
         sendMsg(0, msg);
@@ -22,4 +26,6 @@ public abstract class Session {
         }
         this.executor = executor;
     }
+
+    public abstract Channel getChannel();
 }

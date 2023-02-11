@@ -9,10 +9,9 @@ public class Configuration {
     //热更新配置
     private HotSwapConfig hotSwap;
     //redis配置
-    private RedisConfig redisConfig;
+    private RedisConfig redis;
     //资源配置
-    private ResourceConfig resourceConfig;
-
+    private ResourceConfig resource;
 
     private String name;
 
@@ -24,20 +23,20 @@ public class Configuration {
         this.hotSwap = hotSwap;
     }
 
-    public RedisConfig getRedisConfig() {
-        return redisConfig;
+    public RedisConfig getRedis() {
+        return redis;
     }
 
-    public void setRedisConfig(RedisConfig redisConfig) {
-        this.redisConfig = redisConfig;
+    public void setRedis(RedisConfig redis) {
+        this.redis = redis;
     }
 
-    public ResourceConfig getResourceConfig() {
-        return resourceConfig;
+    public ResourceConfig getResource() {
+        return resource;
     }
 
-    public void setResourceConfig(ResourceConfig resourceConfig) {
-        this.resourceConfig = resourceConfig;
+    public void setResource(ResourceConfig resource) {
+        this.resource = resource;
     }
 
     public String getName() {

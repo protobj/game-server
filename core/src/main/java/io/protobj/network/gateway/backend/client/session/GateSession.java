@@ -15,7 +15,7 @@ public class GateSession extends Session {
     }
 
     @Override
-    public void sendMsg(int index, Object msg) {
-        Channel channel = session.choose();
+    public Channel getChannel() {
+        return session.choose();
     }
 }
