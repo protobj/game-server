@@ -9,19 +9,15 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.protobj.network.gateway.backend.server.BackendServerAuthHandler;
-import io.protobj.network.gateway.backend.server.BackendServerCache;
-import io.protobj.network.gateway.backend.server.BackendServerMsgHandler;
-import io.protobj.network.gateway.front.server.FrontServerAuthHandler;
-import io.protobj.network.gateway.front.server.FrontServerCache;
-import io.protobj.network.gateway.front.server.FrontServerMsgHandler;
+import io.protobj.network.gateway.external.GateExternalAuthHandler;
+import io.protobj.network.gateway.external.GateExternalCache;
+import io.protobj.network.gateway.external.GateExternalMsgHandler;
+import io.protobj.network.gateway.internal.GateInternalAuthHandler;
+import io.protobj.network.gateway.internal.GateInternalCache;
+import io.protobj.network.gateway.internal.GateInternalMsgHandler;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -31,25 +27,25 @@ public class NettyGateServer implements IGatewayServer {
     private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup workerGroup;
 
-    private final FrontServerAuthHandler frontServerAuthHandler;
-    private final FrontServerMsgHandler frontServerMsgHandler;
+    private final GateExternalAuthHandler gateExternalAuthHandler;
+    private final GateExternalMsgHandler gateExternalMsgHandler;
 
 
-    private final FrontServerCache frontServerCache = new FrontServerCache();
+    private final GateExternalCache gateExternalCache = new GateExternalCache();
 
-    private final BackendServerAuthHandler backendServerAuthHandler;
-    private final BackendServerMsgHandler backendServerMsgHandler;
+    private final GateInternalAuthHandler gateInternalAuthHandler;
+    private final GateInternalMsgHandler gateInternalMsgHandler;
 
-    private final BackendServerCache backendServerCache = new BackendServerCache();
+    private final GateInternalCache gateInternalCache = new GateInternalCache();
 
     public NettyGateServer(int serverSize) {
         bossGroup = new NioEventLoopGroup(serverSize);
         workerGroup = new NioEventLoopGroup();
-        frontServerAuthHandler = new FrontServerAuthHandler(this);
-        frontServerMsgHandler = new FrontServerMsgHandler(this);
+        gateExternalAuthHandler = new GateExternalAuthHandler(this);
+        gateExternalMsgHandler = new GateExternalMsgHandler(this);
 
-        backendServerAuthHandler = new BackendServerAuthHandler(this);
-        backendServerMsgHandler = new BackendServerMsgHandler(this);
+        gateInternalAuthHandler = new GateInternalAuthHandler(this);
+        gateInternalMsgHandler = new GateInternalMsgHandler(this);
     }
 
     @Override
@@ -69,8 +65,8 @@ public class NettyGateServer implements IGatewayServer {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Short.MAX_VALUE, 0, 2, 0, 2));
-                        ch.pipeline().addLast(frontServerAuthHandler);
-                        ch.pipeline().addLast(frontServerMsgHandler);
+                        ch.pipeline().addLast(gateExternalAuthHandler);
+                        ch.pipeline().addLast(gateExternalMsgHandler);
                     }
                 });
 
@@ -158,8 +154,8 @@ public class NettyGateServer implements IGatewayServer {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 2, 0, 2));
-                        ch.pipeline().addLast(backendServerAuthHandler);
-                        ch.pipeline().addLast(backendServerMsgHandler);
+                        ch.pipeline().addLast(gateInternalAuthHandler);
+                        ch.pipeline().addLast(gateInternalMsgHandler);
                     }
                 });
 
@@ -178,11 +174,11 @@ public class NettyGateServer implements IGatewayServer {
         return CompletableFuture.allOf(of.toArray(new CompletableFuture[0]));
     }
 
-    public BackendServerCache getBackendCache() {
-        return backendServerCache;
+    public GateInternalCache getBackendCache() {
+        return gateInternalCache;
     }
 
-    public FrontServerCache getFrontCache() {
-        return frontServerCache;
+    public GateExternalCache getFrontCache() {
+        return gateExternalCache;
     }
 }

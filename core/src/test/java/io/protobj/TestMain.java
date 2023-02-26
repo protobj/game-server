@@ -8,11 +8,11 @@ import io.protobj.event.EventBus;
 import io.protobj.event.Test;
 import io.protobj.hotswap.HotSwapConfig;
 import io.protobj.hotswap.HotSwapManger;
-import io.protobj.network.gateway.NettyGateClient;
+import io.protobj.network.internal.NettyInternalClient;
 import io.protobj.network.gateway.NettyGateServer;
-import io.protobj.network.gateway.backend.client.session.MutilChannelSession;
-import io.protobj.network.gateway.backend.client.session.Session;
-import io.protobj.network.gateway.backend.client.session.SessionCache;
+import io.protobj.network.internal.session.MutilChannelSession;
+import io.protobj.network.internal.session.Session;
+import io.protobj.network.internal.session.SessionCache;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
 import io.protobj.resource.table.Id;
@@ -103,14 +103,14 @@ public class TestMain implements IServer {
             }
         }).join();
         MutilChannelSession mutilChannelSession = new MutilChannelSession();
-        NettyGateClient nettyGateClient = new NettyGateClient(1, new SessionCache() {
+        NettyInternalClient nettyInternalClient = new NettyInternalClient(1, new SessionCache() {
             @Override
             public Session getSessionById(int channelId) {
                 return null;
             }
-        });
+        }, null, null);
         for (int i = 0; i < 3; i++) {
-            CompletableFuture<Channel> client = nettyGateClient.startTcpBackendClient(localhost, port, 1);
+            CompletableFuture<Channel> client = nettyInternalClient.start(localhost, port, 1);
             Channel join = client.join();
             mutilChannelSession.add(join);
         }

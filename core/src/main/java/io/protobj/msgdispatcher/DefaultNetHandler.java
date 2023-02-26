@@ -1,8 +1,8 @@
 package io.protobj.msgdispatcher;
 
 import io.protobj.IServer;
-import io.protobj.msg.Message;
-import io.protobj.network.gateway.backend.client.session.Session;
+import io.protobj.network.internal.message.RqstMessage;
+import io.protobj.network.internal.session.Session;
 import javassist.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +23,11 @@ public class DefaultNetHandler implements INetHandler {
     }
 
     @NetHandler
-    public CompletableFuture<?> invoke(Session session,Message message) throws Throwable {
+    public CompletableFuture<?> invoke(Session session, RqstMessage rqstMessage) throws Throwable {
         if (hasIndex) {
-            return (CompletableFuture<?>) method.invoke(source,session, message.index(), message.msg());
+            return (CompletableFuture<?>) method.invoke(source,session, rqstMessage.index(), rqstMessage.msg());
         }
-        return (CompletableFuture<?>) method.invoke(source, session, message.msg());
+        return (CompletableFuture<?>) method.invoke(source, session, rqstMessage.msg());
     }
 
     public Method getMethod() {
@@ -49,7 +49,7 @@ public class DefaultNetHandler implements INetHandler {
             CtConstructor ctConstructor = new CtConstructor(new CtClass[]{classPool.get(object.getClass().getName())}, ctClass);
             ctConstructor.setBody("{this.bean=$1;}");
             ctClass.addConstructor(ctConstructor);
-            stringBuilder.append("\npublic java.util.concurrent.CompletableFuture invoke(io.protobj.network.gateway.backend.client.session.Session session,io.protobj.msg.Message data) throws Throwable {\n");
+            stringBuilder.append("\npublic java.util.concurrent.CompletableFuture invoke(io.protobj.network.internal.session.Session session,io.protobj.msgdispatcher.Message data) throws Throwable {\n");
             Class<?> parameterType = method.getParameterTypes()[1];
             if (parameterType == int.class) {
                 stringBuilder.append("\treturn bean." + method.getName() + "($1,$2.index(),(" + receiveClass.getTypeName() + ")$2.msg());\n");//

@@ -1,18 +1,18 @@
 package io.protobj.network.gateway;
 
 import io.netty.util.AttributeKey;
-import io.protobj.network.gateway.backend.server.BackendServerCache;
-import io.protobj.network.gateway.backend.server.BackendServerSession;
-import io.protobj.network.gateway.front.server.FrontServerCache;
-import io.protobj.network.gateway.front.server.FrontServerSession;
+import io.protobj.network.gateway.internal.GateInternalCache;
+import io.protobj.network.gateway.internal.GateInternalSession;
+import io.protobj.network.gateway.external.GateExternalCache;
+import io.protobj.network.gateway.external.GateExternalSession;
 
 import java.util.concurrent.CompletableFuture;
 
 public interface IGatewayServer {
     AttributeKey<byte[]> TOKEN = AttributeKey.newInstance("TOKEN");
-    AttributeKey<FrontServerSession> FRONT_SESSION = AttributeKey.newInstance("FRONT_SESSION");
+    AttributeKey<GateExternalSession> FRONT_SESSION = AttributeKey.newInstance("FRONT_SESSION");
 
-    AttributeKey<BackendServerSession> BACKEND_SESSION = AttributeKey.newInstance("BACKEND_SESSION");
+    AttributeKey<GateInternalSession> BACKEND_SESSION = AttributeKey.newInstance("BACKEND_SESSION");
 
     /**
      * 开启前端tcp监听
@@ -31,7 +31,7 @@ public interface IGatewayServer {
      */
     CompletableFuture<Void> startTcpBackendServer(String host, int... ports);
 
-    BackendServerCache getBackendCache();
+    GateInternalCache getBackendCache();
 
-    FrontServerCache getFrontCache();
+    GateExternalCache getFrontCache();
 }

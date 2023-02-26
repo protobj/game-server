@@ -1,9 +1,9 @@
 package io.protobj.msgdispatcher;
 
-import io.protobj.msg.Message;
-import io.protobj.network.gateway.backend.client.session.Session;
+import io.protobj.network.internal.message.RqstMessage;
+import io.protobj.network.internal.session.Session;
 
 public interface MsgDispatcher {
 
-    void dispatch(Session session, Message message);
+    void dispatch(Session session, RqstMessage rqstMessage);
 }

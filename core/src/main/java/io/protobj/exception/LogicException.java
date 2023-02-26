@@ -1,6 +1,6 @@
 package io.protobj.exception;
 
-import io.protobj.msg.RespError;
+import io.protobj.network.internal.message.RespError;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class LogicException extends RuntimeException {

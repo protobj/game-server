@@ -2,8 +2,8 @@ package io.protobj.msgdispatcher;
 
 import io.protobj.IServer;
 import io.protobj.Module;
-import io.protobj.msg.Message;
-import io.protobj.network.gateway.backend.client.session.Session;
+import io.protobj.network.internal.message.RqstMessage;
+import io.protobj.network.internal.session.Session;
 import io.protobj.thread.ExecutorGroup;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -42,7 +42,7 @@ public class MsgDispatcherManager implements MsgDispatcher {
             Object bean = server.getBeanByType(declaringClass);
             final Parameter[] parameters = method.getParameters();
             Class<?> type = parameters[0].getType();
-            if (parameters.length != 1 || !type.isAssignableFrom(Message.class)) {
+            if (parameters.length != 1 || !type.isAssignableFrom(RqstMessage.class)) {
                 logger.error(" {} 第一个参数不是 Message 子类 ", method.getName());
                 continue;
             }
@@ -55,7 +55,7 @@ public class MsgDispatcherManager implements MsgDispatcher {
     }
 
     @Override
-    public void dispatch(Session session, Message msg) {
+    public void dispatch(Session session, RqstMessage msg) {
         INetHandler netHandler = netHandlerMap.get(msg.getClass());
         try {
             Executor executor = session.executor();
@@ -63,7 +63,7 @@ public class MsgDispatcherManager implements MsgDispatcher {
                 session.setExecutor(executorGroup.next());
             }
             CompletableFuture<?> future = netHandler.invoke(session, msg);
-            future.thenAccept(resp -> session.sendMsg(msg.index(), resp));
+            future.thenAccept(resp -> session.unicast(msg.index(), resp));
 
         } catch (Throwable e) {
             throw new RuntimeException(e);

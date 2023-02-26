@@ -1,0 +1,7 @@
+package io.protobj.login;
+
+
+
+rqstMessage RqstLogin{
+    i32 sid = 1;
+}
