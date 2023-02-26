@@ -203,6 +203,11 @@ public class TestMain implements IServer {
         return schedulerService;
     }
 
+    @Override
+    public SessionManager sessionManager() {
+        return null;
+    }
+
     public static class TestResource {
         @Id
         private int id;
