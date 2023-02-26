@@ -10,7 +10,7 @@ import io.protobj.util.ByteBufUtil;
 
 import java.util.List;
 
-public class InternalProtobjCodec extends ByteToMessageCodec<Object> {
+public class InternalMsgCodec extends ByteToMessageCodec<Object> {
 
     private Serilizer serilizer;
 
@@ -53,7 +53,6 @@ public class InternalProtobjCodec extends ByteToMessageCodec<Object> {
             out.writeInt(unicastMessage.channelId());
             ByteBufUtil.writeVarInt(out, unicastMessage.index());
             out.writeBytes(data);
-
         } else {
             throw new IllegalArgumentException("unknown message type:%s".formatted(msg != null ? msg.getClass().getName() : "null"));
         }
