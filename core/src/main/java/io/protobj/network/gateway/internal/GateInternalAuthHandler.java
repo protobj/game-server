@@ -14,7 +14,6 @@ import static io.protobj.network.gateway.IGatewayServer.*;
 @ChannelHandler.Sharable
 public class GateInternalAuthHandler extends ChannelInboundHandlerAdapter {
 
-
     private final NettyGateServer nettyGateServer;
 
     public GateInternalAuthHandler(NettyGateServer nettyGateServer) {
@@ -32,8 +31,8 @@ public class GateInternalAuthHandler extends ChannelInboundHandlerAdapter {
         }
         int sid = buf.readInt();
 
-        ByteBuf buffer = channel.alloc().buffer(3);
-        buffer.writeShort(1);
+        ByteBuf buffer = channel.alloc().buffer(5);
+        buffer.writeInt(1);
         buffer.writeByte(Command.Handshake.getCommand());//连接成功
         channel.writeAndFlush(buffer);
         channel.pipeline().remove(this);

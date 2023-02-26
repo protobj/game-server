@@ -9,6 +9,7 @@ import io.protobj.Json;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 
 public enum Jackson implements Json {
@@ -63,6 +64,15 @@ public enum Jackson implements Json {
     public JsonNode readTree(File file) throws IOException {
         try {
             return objectMapper.readTree(file);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public JsonNode readTree(InputStream input) throws IOException {
+        try {
+            return objectMapper.readTree(input);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

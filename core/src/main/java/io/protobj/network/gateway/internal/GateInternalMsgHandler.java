@@ -53,8 +53,8 @@ public class GateInternalMsgHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void heartbeat(ChannelHandlerContext ctx, byte cmd) {
-        ByteBuf buffer = ctx.channel().alloc().buffer(3);
-        buffer.writeShort(1);
+        ByteBuf buffer = ctx.channel().alloc().buffer(5);
+        buffer.writeInt(1);
         buffer.writeByte(cmd);
         ctx.channel().writeAndFlush(buffer);
     }
@@ -165,6 +165,5 @@ public class GateInternalMsgHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         close(ctx, true);
-        super.channelInactive(ctx);
     }
 }

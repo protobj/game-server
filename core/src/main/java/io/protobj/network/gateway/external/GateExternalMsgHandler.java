@@ -50,8 +50,8 @@ public class GateExternalMsgHandler extends ChannelInboundHandlerAdapter {
         if (CollectionUtils.isEmpty(serverSession)) {
             return;
         }
-        ByteBuf buffer = ctx.alloc().buffer(7);
-        buffer.writeShort(5);
+        ByteBuf buffer = ctx.alloc().buffer(9);
+        buffer.writeInt(5);
         buffer.writeByte(Command.Close.getCommand());//转发消息
         buffer.writeInt(gateExternalSession.getId());
         Channel serverChannel = serverSession.get(RandomUtils.nextInt(0, serverSession.size())).getChannel();
@@ -63,8 +63,8 @@ public class GateExternalMsgHandler extends ChannelInboundHandlerAdapter {
 
     private void heartbeat(ChannelHandlerContext ctx, byte cmd) {
         ByteBuf buf;
-        buf = ctx.channel().alloc().buffer(3);
-        buf.writeShort(1);
+        buf = ctx.channel().alloc().buffer(5);
+        buf.writeInt(1);
         buf.writeByte(cmd);
         ctx.channel().writeAndFlush(buf);
     }
@@ -81,8 +81,8 @@ public class GateExternalMsgHandler extends ChannelInboundHandlerAdapter {
             channel.writeAndFlush(ErrorCode.createErrorMsg(channel, ErrorCode.SERVER_NOT_ONLINE));
             return;
         }
-        ByteBuf buffer = ctx.alloc().buffer(7);
-        buffer.writeShort(5 + buf.readableBytes());
+        ByteBuf buffer = ctx.alloc().buffer(9);
+        buffer.writeInt(5 + buf.readableBytes());
         buffer.writeByte(Command.Forward.getCommand());//转发消息
         buffer.writeInt(gateExternalSession.getId());
         Channel serverChannel = serverSession.get(RandomUtils.nextInt(0, serverSession.size())).getChannel();

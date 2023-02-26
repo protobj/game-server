@@ -32,8 +32,8 @@ public class GateExternalAuthHandler extends ChannelInboundHandlerAdapter {
         Channel channel = ctx.channel();
         byte[] token = RandomStringUtils.randomAlphabetic(6).getBytes();
         channel.attr(TOKEN).set(token);
-        ByteBuf buffer = channel.alloc().buffer(9);
-        buffer.writeShort(7);
+        ByteBuf buffer = channel.alloc().buffer(11);
+        buffer.writeInt(7);
         buffer.writeByte(Command.Handshake.getCommand());//1
         buffer.writeBytes(token);//6
         super.channelActive(ctx);
@@ -65,8 +65,8 @@ public class GateExternalAuthHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        ByteBuf buffer = channel.alloc().buffer(3);
-        buffer.writeShort(1);
+        ByteBuf buffer = channel.alloc().buffer(5);
+        buffer.writeInt(1);
         buffer.writeByte(Command.Handshake.getCommand());//连接成功
         channel.writeAndFlush(buf);
         channel.pipeline().remove(this);

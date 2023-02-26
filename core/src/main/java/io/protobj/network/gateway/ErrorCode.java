@@ -14,8 +14,8 @@ public class ErrorCode {
     public static byte ERR_COMMAND = 5;
 
     public static ByteBuf createErrorMsg(Channel channel, byte code) {
-        ByteBuf buffer = channel.alloc().buffer(4);
-        buffer.writeShort(2);
+        ByteBuf buffer = channel.alloc().buffer(6);
+        buffer.writeInt(2);
         buffer.writeByte(Command.ERR.getCommand());
         buffer.writeByte(code);
         return buffer;

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 
 public interface Json {
@@ -18,4 +19,6 @@ public interface Json {
     <T> T decode(String json, TypeReference<T> valueType);
 
     JsonNode readTree(File file) throws IOException;
+
+    JsonNode readTree(InputStream input) throws IOException;
 }

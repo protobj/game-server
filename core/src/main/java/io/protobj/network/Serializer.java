@@ -2,7 +2,7 @@ package io.protobj.network;
 
 import io.netty.buffer.ByteBuf;
 
-public interface Serilizer {
+public interface Serializer {
 
     ByteBuf toByteArray(Object msg);
 

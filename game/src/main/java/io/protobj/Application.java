@@ -10,10 +10,5 @@ public class Application {
         //异步分线程写日志
 //        System.setProperty("log4j2.contextSelector", "org.apache.logging.log4j.core.async.CustomAsyncLoggerContextSelector");
 
-        Configuration obj = new Configuration();
-        obj.setHotSwap(new HotSwapConfig());
-        obj.setRedis(new RedisConfig());
-        obj.setResource(new ResourceConfig());
-        System.out.println(Jackson.INSTANCE.encode(obj));
     }
 }

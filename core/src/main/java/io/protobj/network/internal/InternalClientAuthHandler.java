@@ -21,8 +21,8 @@ public class InternalClientAuthHandler extends ChannelInboundHandlerAdapter {
         Attribute<Integer> attr = channel.attr(InternalClient.SID);
         Integer sid = attr.get();
 
-        ByteBuf buffer = channel.alloc().buffer(7);
-        buffer.writeShort(1 + 4);
+        ByteBuf buffer = channel.alloc().buffer(9);
+        buffer.writeInt(1 + 4);
         buffer.writeByte(Command.Handshake.getCommand());
         buffer.writeInt(sid);
         channel.writeAndFlush(buffer);

@@ -9,7 +9,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.protobj.msgdispatcher.MsgDispatcher;
-import io.protobj.network.Serilizer;
+import io.protobj.network.Serializer;
 import io.protobj.network.internal.session.SessionCache;
 
 import java.util.concurrent.CompletableFuture;
@@ -20,12 +20,11 @@ public class NettyInternalClient implements InternalClient {
 
     private final InternalClientAuthHandler internalClientAuthHandler;
     private final InternalClientMsgHandler internalClientMsgHandler;
-
     //网络消息分发
-    public NettyInternalClient(int clientSize, SessionCache sessionCache, MsgDispatcher msgDispatcher, Serilizer serilizer) {
+    public NettyInternalClient(int clientSize, SessionCache sessionCache, MsgDispatcher msgDispatcher, Serializer serializer) {
         this.workerGroup = new NioEventLoopGroup(clientSize);
         internalClientAuthHandler = new InternalClientAuthHandler();
-        internalClientMsgHandler = new InternalClientMsgHandler(sessionCache, serilizer, msgDispatcher);
+        internalClientMsgHandler = new InternalClientMsgHandler(sessionCache, serializer, msgDispatcher);
     }
 
     @Override

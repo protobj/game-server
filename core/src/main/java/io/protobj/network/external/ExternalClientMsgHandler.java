@@ -7,10 +7,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 @ChannelHandler.Sharable
 public class ExternalClientMsgHandler extends ChannelInboundHandlerAdapter {
 
-
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        super.channelRead(ctx, msg);
-
+        //收到消息
+        System.err.println(msg);
     }
 }

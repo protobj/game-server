@@ -46,6 +46,8 @@ public abstract class AServer implements IServer {
 
     private SchedulerService schedulerService;
 
+    private SessionManager sessionManager;
+
     public AServer() {
         this.classCache = new EnhanceClassCache();
     }
@@ -77,7 +79,17 @@ public abstract class AServer implements IServer {
         initRedisAccessor(modules);
         initHotSwapManager(modules);
         initSchedulerService(modules);
+        initSessionManager();
+        initCustom(modules);
         initNet();
+    }
+
+    protected void initCustom(List<Module> modules) {
+
+    }
+
+    protected void initSessionManager() {
+        this.sessionManager = new SessionManager();
     }
 
     protected abstract void initNet();
@@ -186,5 +198,10 @@ public abstract class AServer implements IServer {
     @Override
     public SchedulerService schedulerService() {
         return schedulerService;
+    }
+
+    @Override
+    public SessionManager sessionManager() {
+        return sessionManager;
     }
 }

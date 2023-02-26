@@ -3,6 +3,8 @@ package io.protobj;
 import io.protobj.enhance.EnhanceClassCache;
 import io.protobj.event.EventBus;
 import io.protobj.hotswap.HotSwapManger;
+import io.protobj.msgdispatcher.MsgDispatcher;
+import io.protobj.network.internal.session.Session;
 import io.protobj.redisaccessor.RedisAccessor;
 import io.protobj.resource.ResourceManager;
 import io.protobj.scheduler.SchedulerService;
@@ -40,4 +42,6 @@ public interface IServer extends BeanContainer {
 
 
     SchedulerService schedulerService();
+
+    SessionManager sessionManager();
 }

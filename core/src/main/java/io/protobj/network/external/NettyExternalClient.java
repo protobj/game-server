@@ -8,7 +8,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.protobj.network.Serilizer;
+import io.protobj.network.Serializer;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadFactory;
@@ -20,10 +20,10 @@ public class NettyExternalClient implements ExternalClient {
     private final ExternalClientMsgHandler externalClientMsgHandler;
     private final ExternalClientMsgCodec externalClientMsgCodec;
 
-    public NettyExternalClient(int size, ThreadFactory factory, Serilizer serilizer) {
+    public NettyExternalClient(int size, ThreadFactory factory, Serializer serializer) {
         this.workerGroup = new NioEventLoopGroup(size, factory);
         this.externalClientAuthHandler = new ExternalClientAuthHandler();
-        this.externalClientMsgCodec = new ExternalClientMsgCodec(serilizer);
+        this.externalClientMsgCodec = new ExternalClientMsgCodec(serializer);
         this.externalClientMsgHandler = new ExternalClientMsgHandler();
     }
 
@@ -44,7 +44,6 @@ public class NettyExternalClient implements ExternalClient {
                         ch.pipeline().addLast(new IdleStateHandler(4, 4, 4));
                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                         ch.pipeline().addLast(externalClientAuthHandler);
-
                         ch.pipeline().addLast(externalClientMsgCodec);
                         ch.pipeline().addLast(externalClientMsgHandler);
                         ch.attr(CONNECT_FUTURE).set(connectFuture);
