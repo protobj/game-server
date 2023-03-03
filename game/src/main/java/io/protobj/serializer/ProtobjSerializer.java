@@ -6,10 +6,8 @@ import com.google.common.collect.HashBiMap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
-import io.protobj.Json;
 import io.protobj.Protobj;
 import io.protobj.core.Schema;
-import io.protobj.microserver.Server;
 import io.protobj.network.Serializer;
 import io.protobj.util.ByteBufUtil;
 import io.protobj.util.Jackson;
@@ -21,7 +19,7 @@ public class ProtobjSerializer implements Serializer {
 
     private BiMap<Integer, Class<?>> messageIds = HashBiMap.create();
 
-    private Protobj protobj = new Protobj();
+    private final Protobj protobj = new Protobj();
 
     public ProtobjSerializer() {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("message.json");
@@ -30,7 +28,7 @@ public class ProtobjSerializer implements Serializer {
             for (int i = 0; i < jsonNode.size(); i++) {
                 JsonNode node = jsonNode.get(i);
                 int id = node.get("id").asInt();
-                String className = node.get("clazz").asText();
+                String className = node.get("msg").asText();
                 Class<?> clazz = Class.forName(className);
                 Class<?> schemaClazz = Class.forName(className + "Schema");
                 messageIds.put(id, clazz);
