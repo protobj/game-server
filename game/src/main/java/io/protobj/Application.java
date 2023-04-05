@@ -1,8 +1,5 @@
 package io.protobj;
 
-import io.protobj.hotswap.HotSwapConfig;
-import io.protobj.redisaccessor.config.RedisConfig;
-import io.protobj.resource.ResourceConfig;
 import io.protobj.util.Jackson;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -102,7 +99,11 @@ public class Application {
                 .flatMap(member -> carol.send(member, greetingMsg))
                 .subscribe(null, Throwable::printStackTrace);
         // Avoid exit main thread immediately ]:->
+        System.err.println(Jackson.INSTANCE.encode(ClusterConfig.defaultConfig()));
         alice.updateMetadata("hahahaha").subscribe();
+        alice.requestResponse(carol.member(), Message.fromData("hello requestResponse"))
+                .subscribe(null, Throwable::printStackTrace);
+
         LockSupport.park();
 
     }
