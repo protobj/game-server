@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: io.scalecube:scalecube-cluster:2.6.14" level="project" />
+    <orderEntry type="library" name="Maven: io.scalecube:scalecube-commons:1.0.21" level="project" />
+    <orderEntry type="library" name="Maven: io.scalecube:scalecube-transport-api:2.6.14" level="project" />
+    <orderEntry type="library" name="Maven: io.scalecube:scalecube-cluster-api:2.6.14" level="project" />
+    <orderEntry type="library" name="Maven: io.scalecube:scalecube-transport-netty:2.6.14" level="project" />
+    <orderEntry type="library" name="Maven: io.projectreactor.netty:reactor-netty:1.0.23" level="project" />
+    <orderEntry type="library" name="Maven: io.projectreactor.netty:reactor-netty-core:1.0.23" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-handler:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-common:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-resolver:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-buffer:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-native-unix-common:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-handler-proxy:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec-socks:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-resolver-dns:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec-dns:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-resolver-dns-native-macos:osx-x86_64:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-resolver-dns-classes-macos:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-native-epoll:linux-x86_64:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-classes-epoll:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.projectreactor.netty:reactor-netty-http:1.0.23" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec-http:4.1.81.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec-http2:4.1.81.Final" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.projectreactor.netty.incubator:reactor-netty-incubator-quic:0.0.12" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.netty.incubator:netty-incubator-codec-native-quic:linux-x86_64:0.0.30.Final" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.netty.incubator:netty-incubator-codec-classes-quic:0.0.30.Final" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: commons-codec:commons-codec:1.15" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.projectreactor.netty:reactor-netty-http-brave:1.0.23" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.zipkin.brave:brave-instrumentation-http:5.14.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.zipkin.brave:brave:5.14.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.zipkin.reporter2:zipkin-reporter-brave:2.16.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.zipkin.reporter2:zipkin-reporter:2.16.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: io.zipkin.zipkin2:zipkin:2.23.2" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.36" level="project" />
+    <orderEntry type="library" name="Maven: io.protostuff:protostuff-core:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: io.protostuff:protostuff-api:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: io.protostuff:protostuff-runtime:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: io.protostuff:protostuff-collectionschema:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: io.projectreactor:reactor-core:3.5.4" level="project" />
+    <orderEntry type="library" name="Maven: org.reactivestreams:reactive-streams:1.0.4" level="project" />
+  </component>
+</module>

@@ -5,8 +5,8 @@ import io.scalecube.net.Address;
 import java.util.BitSet;
 import java.util.List;
 
-public class ServiceInfo {
-    private int type;//服务类型
+public class ServiceEndPoint {
+    private int st;//服务类型
     private int sid;//服务id
     private int gid;//服务组id
     private int loadRate;//负载
@@ -20,7 +20,7 @@ public class ServiceInfo {
         if (fullId != 0) {
             return fullId;
         }
-        return fullId = type * 10000 + sid;
+        return fullId = st * 10000 + sid;
     }
 
     public synchronized BitSet slotBits() {
@@ -36,12 +36,12 @@ public class ServiceInfo {
         return slotBits;
     }
 
-    public int getType() {
-        return type;
+    public int getSt() {
+        return st;
     }
 
-    public void setType(int type) {
-        this.type = type;
+    public void setSt(int st) {
+        this.st = st;
     }
 
     public int getSid() {
