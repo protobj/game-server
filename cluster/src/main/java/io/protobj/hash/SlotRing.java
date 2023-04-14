@@ -3,10 +3,7 @@ package io.protobj.hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.StampedLock;
 
 public class SlotRing {
@@ -41,8 +38,17 @@ public class SlotRing {
         return true;
     }
 
-
-
+    public boolean addOrUpd(int sid, int[] slots) {
+        if (!checkSlots(sid, slots)) {
+            return false;
+        }
+        int[] ints = sid2slotsMap.get(sid);
+        if (ints != null && Arrays.equals(ints, slots)) {
+            return false;
+        }
+        //排除自身所占，查询槽点是否已被占用
+        return false;
+    }
 
 
     public StampedLock getLock() {
