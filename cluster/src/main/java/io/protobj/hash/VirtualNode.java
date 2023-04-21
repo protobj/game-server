@@ -60,7 +60,7 @@ public class VirtualNode {
 
     @Override
     public String toString() {
-        return "[" + startSlot + "-" + endSlot + "]";
+        return "[" + sid + ":" + startSlot + "-" + endSlot + "]";
     }
 
 

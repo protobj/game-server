@@ -1,7 +1,5 @@
 package io.protobj.hash;
 
-import com.google.common.primitives.Longs;
-
 /**
  * CRC16 Implementation according to CCITT standard Polynomial : 1021 (x^16 + x^12 + x^5 + 1) See <a
  * href="http://redis.io/topics/cluster-spec">Appendix A. CRC16 reference implementation in ANSI
@@ -42,7 +40,18 @@ public final class JedisClusterCRC16 {
     }
 
     public static int getSlot(long key) {
-        return getSlot(Longs.toByteArray(key));
+        return getSlot(toByteArray(key));
+    }
+
+    private static byte[] toByteArray(long value) {
+        // Note that this code needs to stay compatible with GWT, which has known
+        // bugs when narrowing byte casts of long values occur.
+        byte[] result = new byte[8];
+        for (int i = 7; i >= 0; i--) {
+            result[i] = (byte) (value & 0xffL);
+            value >>= 8;
+        }
+        return result;
     }
 
     /**

@@ -1,4 +1,4 @@
-package io.protobj.cluster.discovery;
+package io.protobj.cluster.member;
 
 import io.protobj.cluster.event.ClusterMemberEvent;
 import io.protobj.cluster.metadata.MemberMetadata;

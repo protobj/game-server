@@ -2,12 +2,11 @@ package io.protobj.cluster;
 
 import io.protobj.cluster.api.ClusterService;
 import io.protobj.cluster.config.ClusterConfig;
-import io.protobj.cluster.discovery.MemberService;
-import io.protobj.cluster.discovery.ScalecubeMemberService;
+import io.protobj.cluster.member.MemberService;
+import io.protobj.cluster.member.ScalecubeMemberService;
 import io.protobj.cluster.event.ClusterMemberEvent;
 import io.protobj.cluster.metadata.MemberMetadata;
-import io.protobj.hash.SortedArrayList;
-import io.protobj.hash.VirtualNode;
+import io.protobj.hash.SlotRing;
 import io.protobj.services.ServiceEndPoint;
 import io.protobj.services.util.IpUtils;
 import io.scalecube.net.Address;
@@ -20,11 +19,8 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 
 import java.nio.ByteBuffer;
-import java.util.BitSet;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.StampedLock;
 
 public class DefaultClusterService implements ClusterService {
 
@@ -34,6 +30,8 @@ public class DefaultClusterService implements ClusterService {
     private Scheduler scheduler;
 
     private Map<Integer, ClusterMemberEvent> memberEventMap;
+
+    private SlotRing slotRing;
 
     public void start() {
         ClusterConfig config = new ClusterConfig();
@@ -48,6 +46,7 @@ public class DefaultClusterService implements ClusterService {
         ;
         memberEventMap = new HashMap<>();
         scheduler = Schedulers.newSingle("cluster-member", true);
+        slotRing = new SlotRing("cluster-member");
         this.memberService = discoveryService;
         this.memberService.listen()
                 .onBackpressureBuffer()
@@ -56,13 +55,18 @@ public class DefaultClusterService implements ClusterService {
                 .subscribe(this::onEvent);
     }
 
-
     private void onEvent(ClusterMemberEvent clusterMemberEvent) {
         MemberMetadata metadata = clusterMemberEvent.metadata();
-        if (clusterMemberEvent.isAdded()) {
-            memberEventMap.get(metadata)
+        if (clusterMemberEvent.isAdded() || clusterMemberEvent.isUpdated()) {
+            memberEventMap.put(metadata.getId(), clusterMemberEvent);
+            slotRing.addOrUpd(metadata.getId(), metadata.getSlots());
+        } else if (clusterMemberEvent.isRemoved() || clusterMemberEvent.isLeaving()) {
+            ClusterMemberEvent removed = memberEventMap.remove(metadata.getId());
+            if (removed != null) {
+                slotRing.delete(metadata.getId());
+            }
         }
-    }
+     }
 
     @Override
     public Mono<Void> register(ServiceEndPoint endPoint) {
