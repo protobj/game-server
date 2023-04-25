@@ -1,6 +1,6 @@
-package io.protobj.cluster.config;
+package io.protobj.services.discovery.scalecube.config;
 
-import io.protobj.cluster.metadata.MemberMetadata;
+import io.protobj.services.discovery.scalecube.metadata.MemberMetadata;
 import io.scalecube.net.Address;
 
 import java.util.List;

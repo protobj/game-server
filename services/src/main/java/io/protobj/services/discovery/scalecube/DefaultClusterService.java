@@ -1,11 +1,11 @@
-package io.protobj.cluster;
+package io.protobj.services.discovery.scalecube;
 
-import io.protobj.cluster.api.ClusterService;
-import io.protobj.cluster.config.ClusterConfig;
-import io.protobj.cluster.member.MemberService;
-import io.protobj.cluster.member.ScalecubeMemberService;
-import io.protobj.cluster.event.ClusterMemberEvent;
-import io.protobj.cluster.metadata.MemberMetadata;
+import io.protobj.services.discovery.scalecube.api.ClusterService;
+import io.protobj.services.discovery.scalecube.config.ClusterConfig;
+import io.protobj.services.discovery.scalecube.member.MemberService;
+import io.protobj.services.discovery.scalecube.member.ScalecubeMemberService;
+import io.protobj.services.discovery.scalecube.event.ClusterMemberEvent;
+import io.protobj.services.discovery.scalecube.metadata.MemberMetadata;
 import io.protobj.hash.SlotRing;
 import io.protobj.services.ServiceEndPoint;
 import io.protobj.services.util.IpUtils;

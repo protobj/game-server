@@ -1,6 +1,6 @@
-package io.protobj.cluster.member;
+package io.protobj.services.discovery.scalecube.member;
 
-import io.protobj.cluster.event.ClusterMemberEvent;
+import io.protobj.services.discovery.scalecube.event.ClusterMemberEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

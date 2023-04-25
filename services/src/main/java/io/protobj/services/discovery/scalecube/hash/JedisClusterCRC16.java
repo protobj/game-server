@@ -1,4 +1,4 @@
-package io.protobj.hash;
+package io.protobj.services.discovery.scalecube.hash;
 
 /**
  * CRC16 Implementation according to CCITT standard Polynomial : 1021 (x^16 + x^12 + x^5 + 1) See <a

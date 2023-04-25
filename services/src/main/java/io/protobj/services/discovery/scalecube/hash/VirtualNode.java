@@ -1,4 +1,4 @@
-package io.protobj.hash;
+package io.protobj.services.discovery.scalecube.hash;
 
 public class VirtualNode {
 

@@ -1,10 +1,9 @@
-package io.protobj.cluster.metadata;
+package io.protobj.services.discovery.scalecube.metadata;
 
 import io.scalecube.net.Address;
 
 public class MemberMetadata {
     private int id;
-
     private Address address;
     private int[] slots;
 

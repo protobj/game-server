@@ -1,7 +1,7 @@
-package io.protobj.cluster.member;
+package io.protobj.services.discovery.scalecube.member;
 
-import io.protobj.cluster.event.ClusterMemberEvent;
-import io.protobj.cluster.metadata.MemberMetadata;
+import io.protobj.services.discovery.scalecube.event.ClusterMemberEvent;
+import io.protobj.services.discovery.scalecube.metadata.MemberMetadata;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;

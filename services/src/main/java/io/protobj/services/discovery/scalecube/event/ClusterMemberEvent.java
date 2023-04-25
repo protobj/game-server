@@ -1,6 +1,6 @@
-package io.protobj.cluster.event;
+package io.protobj.services.discovery.scalecube.event;
 
-import io.protobj.cluster.metadata.MemberMetadata;
+import io.protobj.services.discovery.scalecube.metadata.MemberMetadata;
 import io.scalecube.cluster.Member;
 
 import java.util.Objects;

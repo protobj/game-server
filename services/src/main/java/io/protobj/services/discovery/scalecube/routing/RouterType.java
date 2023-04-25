@@ -1,4 +1,4 @@
-package io.protobj.cluster.routing;
+package io.protobj.services.discovery.scalecube.routing;
 
 public enum RouterType {
     Gid,//指定服务器gid
