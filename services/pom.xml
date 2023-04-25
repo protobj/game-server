@@ -39,6 +39,26 @@
             <artifactId>reactor-core</artifactId>
             <version>3.5.4</version>
         </dependency>
+        <dependency>
+            <groupId>it.unimi.dsi</groupId>
+            <artifactId>fastutil</artifactId>
+            <version>8.5.12</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.rsocket</groupId>-->
+<!--            <artifactId>rsocket-bom</artifactId>-->
+<!--            <version>1.1.3</version>-->
+<!--        </dependency>-->
 
+        <dependency>
+            <groupId>io.rsocket</groupId>
+            <artifactId>rsocket-core</artifactId>
+            <version>1.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.rsocket</groupId>
+            <artifactId>rsocket-transport-netty</artifactId>
+            <version>1.1.3</version>
+        </dependency>
     </dependencies>
 </project>

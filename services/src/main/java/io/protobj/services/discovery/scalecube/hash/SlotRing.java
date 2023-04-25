@@ -1,5 +1,8 @@
 package io.protobj.services.discovery.scalecube.hash;
 
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +20,7 @@ public class SlotRing {
     // 通过startSlot排序，快速找出下一个
     private final SortedArrayList<VirtualNode> virtualNodes = new SortedArrayList<>(Comparator.comparing(VirtualNode::getStartSlot));
 
-    private final Map<Integer, int[]> sid2slotsMap = new HashMap<>();
+    private final Int2ObjectMap<int[]> sid2slotsMap = new Int2ObjectOpenHashMap<>();
 
     public SlotRing(String ringName) {
         this.ringName = ringName;

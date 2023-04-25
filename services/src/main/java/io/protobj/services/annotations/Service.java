@@ -6,9 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
+@Target({ElementType.TYPE, ElementType.METHOD})
 public @interface Service {
 
     //服务类型
-    int st();
+    int st() default 0;
+
+    //服务编号
+    int ix() default 0;
 }

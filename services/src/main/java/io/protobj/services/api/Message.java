@@ -6,6 +6,13 @@ public class Message {
 
     private Content content;
 
+    public static Message error(Header header, int errorCode, String errorMessage) {
+        Message message = new Message();
+        message.setHeader(header);
+        message.setContent(new ErrorData(errorCode, errorMessage));
+        return message;
+    }
+
     public Header getHeader() {
         return header;
     }
@@ -14,11 +21,11 @@ public class Message {
         this.header = header;
     }
 
-    public Content getBody() {
+    public Content getContent() {
         return content;
     }
 
-    public void setBody(Content content) {
+    public void setContent(Content content) {
         this.content = content;
     }
 
@@ -27,12 +34,22 @@ public class Message {
 
         private int cmd;
 
+        private boolean error;
+
         public int getCmd() {
             return cmd;
         }
 
         public void setCmd(int cmd) {
             this.cmd = cmd;
+        }
+
+        public boolean isError() {
+            return error;
+        }
+
+        public void setError(boolean error) {
+            this.error = error;
         }
     }
 
