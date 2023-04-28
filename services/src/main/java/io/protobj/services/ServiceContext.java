@@ -65,7 +65,7 @@ public class ServiceContext implements ServiceRegistry {
         for (Object serviceProvider : serviceProviders) {
             Service service = serviceProvider.getClass().getAnnotation(Service.class);
             int st = service.st();
-            Class<? extends ServiceLookup> router = service.router();
+            Class<? extends ServiceLookup> router =null;
             try {
                 ServiceLookup lookup = router.getConstructor().newInstance();
                 serviceLookupMap.putIfAbsent(st, lookup);
@@ -96,17 +96,17 @@ public class ServiceContext implements ServiceRegistry {
                         transportBootstrap -> {
                             final Address serviceAddress = transportBootstrap.transportAddress;
                             localEndPoint.setAddress(serviceAddress);
+                    return Mono.just(ServiceContext.this);
 
-
-                            return createDiscovery(
-                                    this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                                    .publishOn(scheduler)
-                                    .publishOn(scheduler)
-                                    .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                                    .then(serviceDiscovery.start())
-                                    .then(serviceDiscovery.listen())
-                                    .publishOn(scheduler)
-                                    .thenReturn(this);
+//                            return createDiscovery(
+//                                    this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
+//                                    .publishOn(scheduler)
+//                                    .publishOn(scheduler)
+//                                    .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
+//                                    .then(serviceDiscovery.start())
+//                                    .then(serviceDiscovery.listen())
+//                                    .publishOn(scheduler)
+//                                    .thenReturn(this);
                         })
                 .onErrorResume(
                         ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(ServiceContext.class))

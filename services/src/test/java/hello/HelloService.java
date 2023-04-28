@@ -1,5 +1,6 @@
 package hello;
 
+import invoker.HelloSidNameInvoker;
 import io.protobj.services.annotations.Service;
 import io.protobj.services.annotations.Sid;
 import io.protobj.services.annotations.Sids;
@@ -9,15 +10,21 @@ import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
 
+@Service(st = 100)
 public interface HelloService {
 
-    Flux<Message.Content> hello0(@Sids int[] sids, String name);
+    @Service(ix = 1)
+    Flux<HelloSidNameInvoker.HelloSidNameMessage> hello0(@Sids int[] sids, String name);
 
-    Mono<String> hello(@Sid int sid, String name);
+    @Service(ix = 2)
+    Mono<HelloSidNameInvoker.HelloSidNameMessage> hello(@Sid int sid, String name);
 
-    String helloBlock(@Sid int sid, String name);
+    @Service(ix = 3)
+    HelloSidNameInvoker.HelloSidNameMessage helloBlock(@Sid int sid, String name);
 
-    Flux<String> helloStream(@Sid int sid, String name);
+    @Service(ix = 4)
+    Flux<HelloSidNameInvoker.HelloSidNameMessage> helloStream(@Sid int sid, String name);
 
-    Flux<String> helloChannel(@Sid int sid, Flux<String> name);
+    @Service(ix = 5)
+    Flux<HelloSidNameInvoker.HelloSidNameMessage> helloChannel(Flux<HelloSidNameInvoker.HelloSidNameMessage> name);
 }

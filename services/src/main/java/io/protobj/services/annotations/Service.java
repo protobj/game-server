@@ -17,5 +17,5 @@ public @interface Service {
     //服务编号
     int ix() default 0;
 
-    Class<? extends ServiceLookup> router();
+//    Class<? extends ServiceLookup> router();
 }

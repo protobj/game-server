@@ -34,7 +34,7 @@ public class HelloSidNameInvoker implements MethodInvoker {
     }
 
 
-    public static class HelloSidNameMessage {
+    public static class HelloSidNameMessage implements Message.Content {
         public int sid;
         public String name;
     }
@@ -55,11 +55,11 @@ public class HelloSidNameInvoker implements MethodInvoker {
     @Override
     public Flux<Message.Content> invokeMany(Message.Content content) {
         HelloSidNameMessage message0 = (HelloSidNameMessage) content;
-        return helloService.hello0(null, message0.name);
+        return helloService.hello0(null, message0.name).cast(Message.Content.class);
     }
 
     @Override
     public Flux<Message.Content> invokeBidirectional(Flux<Message.Content> content) {
-       return helloService.helloChannel(0, content);
+        return helloService.helloChannel(content.cast(HelloSidNameMessage.class)).cast(Message.Content.class);
     }
 }

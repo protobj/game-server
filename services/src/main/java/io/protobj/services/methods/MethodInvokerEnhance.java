@@ -8,27 +8,52 @@ import io.protobj.services.annotations.Sids;
 import io.protobj.services.annotations.Slot;
 import io.protobj.services.api.Message;
 import javassist.*;
+import javassist.Modifier;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.implementation.FixedValue;
 import reactor.core.publisher.Flux;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.io.IOException;
+import java.lang.reflect.*;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MethodInvokerEnhance {
 
+    public static class InnerClassLoader extends ClassLoader {
+        private Map<String, Class<?>> classMap = new HashMap<>();
 
-    public static MethodInvoker create(Object service, Method method, IServer server) throws CannotCompileException, NotFoundException {
-        Service annotation = service.getClass().getAnnotation(Service.class);
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            Class<?> clz = classMap.get(name);
+            if (clz != null) {
+                return clz;
+            }
+            return super.loadClass(name, resolve);
+        }
+
+        public void addClass(Class<?> clz) {
+            classMap.put(clz.getName(), clz);
+        }
+    }
+
+    private static final InnerClassLoader CLASS_LOADER = new InnerClassLoader();
+
+    private static final String dir = "./clzTemp";
+
+    public static MethodInvoker create(Object service, Class<?> methodInterface, Method method, IServer server) throws Exception {
+        Service annotation = methodInterface.getAnnotation(Service.class);
         int st = annotation.st();
         Service methodAnnotation = method.getAnnotation(Service.class);
         int id = st + methodAnnotation.ix();
         Parameter[] parameters = method.getParameters();
         String className = server.getClass().getName() + "MethodInvoker" + id;
-
+        System.err.println(id);
         EnhanceClassCache enhanceClassCache = server.getEnhanceClassCache();
         Class enhanceClass = enhanceClassCache.getEnhanceClass(className);
         if (enhanceClass != null) {
@@ -39,12 +64,13 @@ public class MethodInvokerEnhance {
             }
         }
         ClassPool pool = enhanceClassCache.getClassPool();
+        pool.appendClassPath(dir);
         CtClass newClass = pool.makeClass(className);
 
         newClass.addField(CtField.make("public " + server.getClass().getName() + " bean;", newClass));
 
         CtConstructor ctConstructor = new CtConstructor(new CtClass[]{pool.get(Object.class.getName())}, newClass);
-        ctConstructor.setBody("$0.bean= (" + server.getClass().getName() + ")$1");
+        ctConstructor.setBody("{$0.bean= (" + server.getClass().getName() + ")$1;}");
         newClass.addConstructor(ctConstructor);
 
         newClass.addMethod(CtMethod.make("public int cmd(){return " + id + ";}", newClass));
@@ -53,27 +79,89 @@ public class MethodInvokerEnhance {
         newClass.addMethod(CtMethod.make("public " + CommunicationMode.class.getName() + " mode(){return " + CommunicationMode.class.getName() + "." + communicationMode.name() + ";}", newClass));
         Class<? extends Message.Content> parameterClass;
         try {
-            if (communicationMode != CommunicationMode.REQUEST_CHANNEL) {
-                parameterClass = createParameterClass(service.getClass().getName() + "Message" + id, parameters, server);
-            } else {
-                parameterClass =
-            }
-            newClass.addMethod(CtMethod.make("public " + Type.class.getName() + " parameterType(){return " + (parameterClass == null ? "null" : parameterClass.getName() + ".class") + ";", newClass));
+            parameterClass = getOrCreateParameterClass(service.getClass().getName() + "Message" + id, parameters, server);
+            newClass.addMethod(CtMethod.make("public " + Type.class.getName() + " parameterType(){return " + (parameterClass == null ? "null" : parameterClass.getName() + ".class") + ";}", newClass));
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } switch (communicationMode) {
+        }
+        boolean parameterIsContent = parameters.length != 0 && (Message.Content.class.isAssignableFrom(parameters[0].getType()) || parameters[0].getType() == Flux.class);
+        switch (communicationMode) {
             case FIRE_AND_FORGET: {
-
+                StringBuilder sb = new StringBuilder();
+                sb.append("public void invokeOne(io.protobj.services.api.Message.Content content) {\n");
+                if (parameters.length == 0) {
+                    sb.append("bean." + method.getName() + "();");
+                } else if (parameterIsContent) {
+                    sb.append("bean." + method.getName() + "((" + parameterClass.getName() + ")content);");
+                } else {
+                    sb.append(parameterClass.getName() + " m = (" + parameterClass.getName() + ")content;");
+                    sb.append("bean." + method.getName() + "(");
+                    for (int i = 0; i < parameters.length; i++) {
+                        String name = parameters[i].getName();
+                        sb.append("m." + name);
+                        if (i != parameters.length - 1) {
+                            sb.append(",");
+                        }
+                    }
+                    sb.append(");");
+                }
+                sb.append("}\n");
+                newClass.addMethod(CtMethod.make(sb.toString(), newClass));
                 break;
             }
             case REQUEST_RESPONSE:
             case REQUEST_RESPONSE_BLOCK: {
+                StringBuilder sb = new StringBuilder();
+                sb.append("public reactor.core.publisher.Mono invokeOne(io.protobj.services.api.Message.Content content) {\n");
+                if (parameters.length == 0) {
+                    sb.append("return bean." + method.getName() + "().cast(io.protobj.services.api.Message.Content.class);");
+                } else if (parameterIsContent) {
+                    sb.append("return bean." + method.getName() + "((" + parameterClass.getName() + ")content).cast(io.protobj.services.api.Message.Content.class);");
+                } else {
+                    sb.append(parameterClass.getName() + " m = (" + parameterClass.getName() + ")content;");
+                    sb.append("return bean." + method.getName() + "(");
+                    for (int i = 0; i < parameters.length; i++) {
+                        String name = parameters[i].getName();
+                        sb.append("m." + name);
+                        if (i != parameters.length - 1) {
+                            sb.append(",");
+                        }
+                    }
+                    sb.append(").cast(io.protobj.services.api.Message.Content.class);");
+                }
+                sb.append("}\n");
+                newClass.addMethod(CtMethod.make(sb.toString(), newClass));
                 break;
             }
             case REQUEST_STREAM: {
+                StringBuilder sb = new StringBuilder();
+                sb.append("public reactor.core.publisher.Flux invokeMany(io.protobj.services.api.Message.Content content) {\n");
+                if (parameters.length == 0) {
+                    sb.append("return bean." + method.getName() + "().cast(io.protobj.services.api.Message.Content.class);");
+                } else if (parameterIsContent) {
+                    sb.append("return bean." + method.getName() + "((" + parameterClass.getName() + ")content).cast(io.protobj.services.api.Message.Content.class);");
+                } else {
+                    sb.append(parameterClass.getName() + " m = (" + parameterClass.getName() + ")content;");
+                    sb.append("return bean." + method.getName() + "(");
+                    for (int i = 0; i < parameters.length; i++) {
+                        String name = parameters[i].getName();
+                        sb.append("m." + name);
+                        if (i != parameters.length - 1) {
+                            sb.append(",");
+                        }
+                    }
+                    sb.append(").cast(io.protobj.services.api.Message.Content.class);");
+                }
+                sb.append("}\n");
+                newClass.addMethod(CtMethod.make(sb.toString(), newClass));
                 break;
             }
             case REQUEST_CHANNEL: {
+                StringBuilder sb = new StringBuilder();
+                sb.append("public reactor.core.publisher.Flux<io.protobj.services.api.Message.Content> invokeBidirectional(reactor.core.publisher.Flux<io.protobj.services.api.Message.Content> content) {\n");
+                sb.append("return bean." + method.getName() + "(content.cast(" + parameterClass.getName() + ".class)).cast(io.protobj.services.api.Message.Content.class);");
+                sb.append("}\n");
+                newClass.addMethod(CtMethod.make(sb.toString(), newClass));
                 break;
             }
             default:
@@ -81,12 +169,18 @@ public class MethodInvokerEnhance {
         }
 
 
+        newClass.writeFile(dir);
+        Class<?> aClass = newClass.toClass(CLASS_LOADER);
+        newClass.detach();
+        server.getEnhanceClassCache().putEnhanceClass(aClass);
+        return (MethodInvoker) aClass.getConstructor().newInstance(service.getClass().cast(service));
+
     }
 
 
     private static final String NOT_SUPPORT_PARAMETER_NAME_MSG = "must turn on \"Store information about method parameters (usable via reflection)\", see https://www.concretepage.com/java/jdk-8/java-8-reflection-access-to-parameter-names-of-method-and-constructor-with-maven-gradle-and-eclipse-using-parameters-compiler-argument";
 
-    public static Class<? extends Message.Content> createParameterClass(String className, Parameter[] parameters, IServer server) throws NotFoundException, CannotCompileException {
+    public static Class<? extends Message.Content> getOrCreateParameterClass(String className, Parameter[] parameters, IServer server) throws NotFoundException, CannotCompileException {
         if (parameters.length == 0) {
             return null;
         }
@@ -99,9 +193,6 @@ public class MethodInvokerEnhance {
         }
         EnhanceClassCache enhanceClassCache = server.getEnhanceClassCache();
         ClassPool pool = enhanceClassCache.getClassPool();
-        if (!parameters[0].isNamePresent()) {
-            throw new RuntimeException(NOT_SUPPORT_PARAMETER_NAME_MSG);
-        }
         try {
             Class enhanceClass = enhanceClassCache.getEnhanceClass(className);
             if (enhanceClass != null) {
@@ -116,8 +207,7 @@ public class MethodInvokerEnhance {
 
         // 创建类
         CtClass newClass = pool.makeClass(className);
-
-        CtClass[] interfaces = {pool.getCtClass(Message.Content.class.getName())};
+        Class<?> superClass = Message.Content.class;
         List<Parameter> collect = Arrays.stream(parameters).filter(it -> it.isAnnotationPresent(Sid.class)
                 || it.isAnnotationPresent(Sids.class)
                 || it.isAnnotationPresent(Slot.class)
@@ -126,33 +216,51 @@ public class MethodInvokerEnhance {
             throw new RuntimeException("@Sid|@Sids|@Slot repeat,only exists one");
         }
         if (collect.size() == 1) {
-            if (collect.)
-            interfaces = new CtClass[]{pool.getCtClass(Message.SidContent.class.getName())};
-            newClass.addMethod(CtMethod.make("public int sid(){return " + collect.get(0).getName() + ";}", newClass));
-        }
-        collect = Arrays.stream(parameters).filter(it -> it.isAnnotationPresent(Sids.class)).collect(Collectors.toList());
-        if (collect.size() > 1) {
-            throw new RuntimeException("@Sids repeat");
-        }
-        if (collect.size() == 1) {
-            interfaces = new CtClass[]{pool.getCtClass(Message.SidContent.class.getName())};
-            newClass.addMethod(CtMethod.make("public int sid(){return " + collect.get(0).getName() + ";}", newClass));
+            Parameter parameter = collect.get(0);
+            if (parameter.isAnnotationPresent(Sid.class)) {
+                if (parameter.getType() != int.class) {
+                    throw new RuntimeException("@Slot parameter must be int");
+                }
+                superClass = Message.SidContent.class;
+            } else if (parameter.isAnnotationPresent(Sids.class)) {
+                if (parameter.getType() != int[].class) {
+                    throw new RuntimeException("@Slot parameter must be int[]");
+                }
+                superClass = Message.SidsContent.class;
+            } else {
+                if (parameter.getType() != long.class) {
+                    throw new RuntimeException("@Slot parameter must be long");
+                }
+                superClass = Message.SlotContent.class;
+            }
         }
 
-        newClass.setInterfaces(interfaces);
-
+        DynamicType.Builder<?> builder = new ByteBuddy().subclass(superClass).name(className);
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             String paramName = parameter.getName();
             Class<?> paramType = parameters[i].getType();
-            CtField ctField = new CtField(pool.get(paramType.getName()), paramName, newClass);
-            ctField.setModifiers(Modifier.PUBLIC);
             if (parameter.isAnnotationPresent(Sid.class) || parameter.isAnnotationPresent(Sids.class)) {
-                ctField.setModifiers(Modifier.TRANSIENT);
+                builder.defineField(paramName, paramType, Modifier.PUBLIC | Modifier.TRANSIENT);
+            } else {
+                builder.defineField(paramName, paramType, Modifier.PUBLIC);
             }
-            newClass.addField(ctField);
+        }
+        if (superClass == Message.SidContent.class) {
+            builder.defineMethod("sid", int.class, java.lang.reflect.Modifier.PUBLIC)
+                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
+        } else if (superClass == Message.SidsContent.class) {
+            builder.defineMethod("sids", int[].class, java.lang.reflect.Modifier.PUBLIC)
+                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
+        } else if (superClass == Message.SlotContent.class) {
+            builder.defineMethod("slotKey", long.class, java.lang.reflect.Modifier.PUBLIC)
+                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
         }
 
+        builder.defineConstructor(java.lang.reflect.Modifier.PUBLIC);
+        builder.defineConstructor(java.lang.reflect.Modifier.PUBLIC)
+                .withParameters(Arrays.stream(parameters).map(it->it.getType()).)
+        ;
         // 添加无参的构造函数
         CtConstructor constructor0 = new CtConstructor(null, newClass);
         constructor0.setModifiers(Modifier.PUBLIC);
@@ -183,8 +291,14 @@ public class MethodInvokerEnhance {
         CtConstructor constructor1 = new CtConstructor(paramCtClassArray, newClass);
         constructor1.setBody(bodyBuilder.toString());
         newClass.addConstructor(constructor1);
-        newClass.detach();
         Class<?> aClass = newClass.toClass();
+        try {
+            newClass.writeFile(dir);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        CLASS_LOADER.addClass(aClass);
+        newClass.detach();
         server.getEnhanceClassCache().putEnhanceClass(aClass);
         return (Class<? extends Message.Content>) aClass;
     }

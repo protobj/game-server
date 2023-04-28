@@ -5,7 +5,6 @@ import io.protobj.services.api.Message;
 import io.protobj.services.exceptions.MessageCodecException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.net.www.MessageHeader;
 
 import java.lang.reflect.Type;
 import java.util.function.BiFunction;
