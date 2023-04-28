@@ -9,40 +9,17 @@ import io.protobj.services.annotations.Slot;
 import io.protobj.services.api.Message;
 import javassist.*;
 import javassist.Modifier;
-import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.implementation.FixedValue;
+import javassist.bytecode.MethodInfo;
+import javassist.bytecode.SignatureAttribute;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.lang.reflect.*;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MethodInvokerEnhance {
-
-    public static class InnerClassLoader extends ClassLoader {
-        private Map<String, Class<?>> classMap = new HashMap<>();
-
-
-        @Override
-        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-            Class<?> clz = classMap.get(name);
-            if (clz != null) {
-                return clz;
-            }
-            return super.loadClass(name, resolve);
-        }
-
-        public void addClass(Class<?> clz) {
-            classMap.put(clz.getName(), clz);
-        }
-    }
-
-    private static final InnerClassLoader CLASS_LOADER = new InnerClassLoader();
 
     private static final String dir = "./clzTemp";
 
@@ -52,7 +29,7 @@ public class MethodInvokerEnhance {
         Service methodAnnotation = method.getAnnotation(Service.class);
         int id = st + methodAnnotation.ix();
         Parameter[] parameters = method.getParameters();
-        String className = server.getClass().getName() + "MethodInvoker" + id;
+        String className = service.getClass().getName() + "MethodInvoker" + id;
         System.err.println(id);
         EnhanceClassCache enhanceClassCache = server.getEnhanceClassCache();
         Class enhanceClass = enhanceClassCache.getEnhanceClass(className);
@@ -88,7 +65,7 @@ public class MethodInvokerEnhance {
         switch (communicationMode) {
             case FIRE_AND_FORGET: {
                 StringBuilder sb = new StringBuilder();
-                sb.append("public void invokeOne(io.protobj.services.api.Message.Content content) {\n");
+                sb.append("public void invoke(io.protobj.services.api.Message.Content content) {\n");
                 if (parameters.length == 0) {
                     sb.append("bean." + method.getName() + "();");
                 } else if (parameterIsContent) {
@@ -112,7 +89,7 @@ public class MethodInvokerEnhance {
             case REQUEST_RESPONSE:
             case REQUEST_RESPONSE_BLOCK: {
                 StringBuilder sb = new StringBuilder();
-                sb.append("public reactor.core.publisher.Mono invokeOne(io.protobj.services.api.Message.Content content) {\n");
+                sb.append("public reactor.core.publisher.Mono<io.protobj.services.api.Message.Content> invokeOne(io.protobj.services.api.Message.Content content) {\n");
                 if (parameters.length == 0) {
                     sb.append("return bean." + method.getName() + "().cast(io.protobj.services.api.Message.Content.class);");
                 } else if (parameterIsContent) {
@@ -135,7 +112,7 @@ public class MethodInvokerEnhance {
             }
             case REQUEST_STREAM: {
                 StringBuilder sb = new StringBuilder();
-                sb.append("public reactor.core.publisher.Flux invokeMany(io.protobj.services.api.Message.Content content) {\n");
+                sb.append("public reactor.core.publisher.Flux<io.protobj.services.api.Message.Content> invokeMany(io.protobj.services.api.Message.Content content) {\n");
                 if (parameters.length == 0) {
                     sb.append("return bean." + method.getName() + "().cast(io.protobj.services.api.Message.Content.class);");
                 } else if (parameterIsContent) {
@@ -170,7 +147,7 @@ public class MethodInvokerEnhance {
 
 
         newClass.writeFile(dir);
-        Class<?> aClass = newClass.toClass(CLASS_LOADER);
+        Class<?> aClass = newClass.toClass();
         newClass.detach();
         server.getEnhanceClassCache().putEnhanceClass(aClass);
         return (MethodInvoker) aClass.getConstructor().newInstance(service.getClass().cast(service));
@@ -193,6 +170,7 @@ public class MethodInvokerEnhance {
         }
         EnhanceClassCache enhanceClassCache = server.getEnhanceClassCache();
         ClassPool pool = enhanceClassCache.getClassPool();
+        pool.appendClassPath("");
         try {
             Class enhanceClass = enhanceClassCache.getEnhanceClass(className);
             if (enhanceClass != null) {
@@ -207,7 +185,20 @@ public class MethodInvokerEnhance {
 
         // 创建类
         CtClass newClass = pool.makeClass(className);
-        Class<?> superClass = Message.Content.class;
+
+        CtClass[] interfaces = {pool.getCtClass(Message.Content.class.getName())};
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            String paramName = parameter.getName();
+            Class<?> paramType = parameters[i].getType();
+            CtField ctField = new CtField(pool.get(paramType.getName()), paramName, newClass);
+            ctField.setModifiers(Modifier.PUBLIC);
+            if (parameter.isAnnotationPresent(Sid.class) || parameter.isAnnotationPresent(Sids.class)) {
+                ctField.setModifiers(Modifier.PUBLIC | Modifier.TRANSIENT);
+            }
+            newClass.addField(ctField);
+        }
         List<Parameter> collect = Arrays.stream(parameters).filter(it -> it.isAnnotationPresent(Sid.class)
                 || it.isAnnotationPresent(Sids.class)
                 || it.isAnnotationPresent(Slot.class)
@@ -221,46 +212,26 @@ public class MethodInvokerEnhance {
                 if (parameter.getType() != int.class) {
                     throw new RuntimeException("@Slot parameter must be int");
                 }
-                superClass = Message.SidContent.class;
+                interfaces = new CtClass[]{pool.getCtClass(Message.SidContent.class.getName())};
+                newClass.addMethod(CtMethod.make("public int sid(){return " + collect.get(0).getName() + ";}", newClass));
             } else if (parameter.isAnnotationPresent(Sids.class)) {
                 if (parameter.getType() != int[].class) {
                     throw new RuntimeException("@Slot parameter must be int[]");
                 }
-                superClass = Message.SidsContent.class;
+                interfaces = new CtClass[]{pool.getCtClass(Message.SidsContent.class.getName())};
+                newClass.addMethod(CtMethod.make("public int[] sids(){return " + collect.get(0).getName() + ";}", newClass));
             } else {
                 if (parameter.getType() != long.class) {
                     throw new RuntimeException("@Slot parameter must be long");
                 }
-                superClass = Message.SlotContent.class;
+                interfaces = new CtClass[]{pool.getCtClass(Message.SlotContent.class.getName())};
+                newClass.addMethod(CtMethod.make("public long slotKey(){return " + collect.get(0).getName() + ";}", newClass));
             }
         }
 
-        DynamicType.Builder<?> builder = new ByteBuddy().subclass(superClass).name(className);
-        for (int i = 0; i < parameters.length; i++) {
-            Parameter parameter = parameters[i];
-            String paramName = parameter.getName();
-            Class<?> paramType = parameters[i].getType();
-            if (parameter.isAnnotationPresent(Sid.class) || parameter.isAnnotationPresent(Sids.class)) {
-                builder.defineField(paramName, paramType, Modifier.PUBLIC | Modifier.TRANSIENT);
-            } else {
-                builder.defineField(paramName, paramType, Modifier.PUBLIC);
-            }
-        }
-        if (superClass == Message.SidContent.class) {
-            builder.defineMethod("sid", int.class, java.lang.reflect.Modifier.PUBLIC)
-                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
-        } else if (superClass == Message.SidsContent.class) {
-            builder.defineMethod("sids", int[].class, java.lang.reflect.Modifier.PUBLIC)
-                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
-        } else if (superClass == Message.SlotContent.class) {
-            builder.defineMethod("slotKey", long.class, java.lang.reflect.Modifier.PUBLIC)
-                    .intercept(FixedValue.value("return " + collect.get(0).getName() + ";"));
-        }
+        newClass.setInterfaces(interfaces);
 
-        builder.defineConstructor(java.lang.reflect.Modifier.PUBLIC);
-        builder.defineConstructor(java.lang.reflect.Modifier.PUBLIC)
-                .withParameters(Arrays.stream(parameters).map(it->it.getType()).)
-        ;
+
         // 添加无参的构造函数
         CtConstructor constructor0 = new CtConstructor(null, newClass);
         constructor0.setModifiers(Modifier.PUBLIC);
@@ -297,8 +268,6 @@ public class MethodInvokerEnhance {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        CLASS_LOADER.addClass(aClass);
-        newClass.detach();
         server.getEnhanceClassCache().putEnhanceClass(aClass);
         return (Class<? extends Message.Content>) aClass;
     }
