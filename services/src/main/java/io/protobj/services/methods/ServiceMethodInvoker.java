@@ -14,6 +14,8 @@ public class ServiceMethodInvoker {
 
     private int cmd;
 
+    private CommunicationMode mode;
+
     private Method method;
 
     private Type retType;

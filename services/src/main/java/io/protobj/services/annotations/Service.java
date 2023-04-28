@@ -1,5 +1,7 @@
 package io.protobj.services.annotations;
 
+import io.protobj.services.router.ServiceLookup;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -14,4 +16,6 @@ public @interface Service {
 
     //服务编号
     int ix() default 0;
+
+    Class<? extends ServiceLookup> router();
 }

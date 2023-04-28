@@ -12,6 +12,8 @@ public interface ServiceLookup {
 
     boolean focus(ServiceEndPoint endPoint);
 
+    int st();
+
     void addOrUpd(ServiceEndPoint endPoint);
 
     void del(ServiceEndPoint endPoint);

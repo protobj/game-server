@@ -13,6 +13,13 @@ public class Message {
         return message;
     }
 
+    public static Message New(Header header, Content content) {
+        Message message = new Message();
+        message.setHeader(header);
+        message.setContent(content);
+        return message;
+    }
+
     public Header getHeader() {
         return header;
     }
@@ -53,7 +60,7 @@ public class Message {
         }
     }
 
-    public static interface Content {
+    public interface Content {
 
     }
 
@@ -81,5 +88,17 @@ public class Message {
         public String getDetail() {
             return detail;
         }
+    }
+
+    public interface SidContent extends Content {
+        int sid();
+    }
+
+    public interface SidsContent extends Content {
+        int[] sids();
+    }
+
+    public interface SlotContent extends Content {
+        long slotKey();
     }
 }

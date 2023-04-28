@@ -3,15 +3,13 @@ package io.protobj.services;
 import io.protobj.services.annotations.Service;
 import io.protobj.services.api.Message;
 import io.protobj.services.discovery.api.ServiceDiscovery;
+import io.protobj.services.methods.Reflect;
+import io.protobj.services.methods.ServiceMethodInvoker;
 import io.protobj.services.registry.api.ServiceRegistry;
 import io.protobj.services.router.ServiceLookup;
 import io.protobj.services.transport.api.ClientTransport;
 import io.protobj.services.transport.api.ServerTransport;
-import io.protobj.services.transport.api.ServiceMessageDataDecoder;
 import io.protobj.services.transport.api.ServiceTransport;
-import io.protobj.services.transport.codec.ProtostuffCodec;
-import io.protobj.services.transport.rsocket.RSocketServiceTransport;
-import io.protostuff.Schema;
 import io.scalecube.net.Address;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -24,31 +22,64 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 
 public class ServiceContext implements ServiceRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceContext.class);
 
-    private ServiceEndPoint localEndPoint;
+    private final ServiceEndPoint localEndPoint;
 
-    private ServiceDiscovery serviceDiscovery;
+    private final ServiceDiscovery serviceDiscovery;
 
 
-    private ServiceTransportBootstrap transportBootstrap;
+    private final ServiceTransportBootstrap transportBootstrap;
     private final Int2ObjectMap<ServiceLookup> serviceLookupMap = new Int2ObjectOpenHashMap<>();
+
+    private final Int2ObjectMap<ServiceMethodInvoker> invokerMap;
 
     private final Sinks.One<Void> shutdown = Sinks.one();
     private final Sinks.One<Void> onShutdown = Sinks.one();
 
     private ServiceContext(Builder builder) {
+        this.localEndPoint = builder.localEndPoint;
+        this.serviceDiscovery = builder.serviceDiscovery;
+        this.transportBootstrap = builder.transportBootstrap;
+        this.invokerMap = parse(builder.serviceProviders);
+    }
 
+    private Int2ObjectMap<ServiceMethodInvoker> parse(List<Object> serviceProviders) {
+        Int2ObjectMap<ServiceMethodInvoker> invokerMap = new Int2ObjectOpenHashMap<>();
+        for (Object serviceProvider : serviceProviders) {
+            Service service = serviceProvider.getClass().getAnnotation(Service.class);
+            int st = service.st();
+            Class<? extends ServiceLookup> router = service.router();
+            try {
+                ServiceLookup lookup = router.getConstructor().newInstance();
+                serviceLookupMap.putIfAbsent(st, lookup);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            for (Method method : serviceProvider.getClass().getDeclaredMethods()) {
+                Service methodAnnotation = method.getAnnotation(Service.class);
+                int ix = methodAnnotation.ix();
+                int id = st + ix;
+            }
+
+        }
+        return null;
     }
 
 
@@ -63,44 +94,17 @@ public class ServiceContext implements ServiceRegistry {
                 .publishOn(scheduler)
                 .flatMap(
                         transportBootstrap -> {
-                            final ServiceCall call = call();
                             final Address serviceAddress = transportBootstrap.transportAddress;
+                            localEndPoint.setAddress(serviceAddress);
 
-                            final ServiceEndpoint.Builder serviceEndpointBuilder =
-                                    ServiceEndpoint.builder()
-                                            .id(id)
-                                            .address(serviceAddress)
-                                            .contentTypes(DataCodec.getAllContentTypes())
-                                            .tags(tags);
-
-                            // invoke service providers and register services
-                            List<Object> serviceInstances =
-                                    serviceProviders.stream()
-                                            .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                                            .peek(this::registerInMethodRegistry)
-                                            .peek(
-                                                    serviceInfo ->
-                                                            serviceEndpointBuilder.appendServiceRegistrations(
-                                                                    ServiceScanner.scanServiceInfo(serviceInfo)))
-                                            .map(ServiceInfo::serviceInstance)
-                                            .collect(Collectors.toList());
-
-                            if (transportBootstrap == ServiceTransportBootstrap.NULL_INSTANCE
-                                    && !serviceInstances.isEmpty()) {
-                                logger.warn("[{}] ServiceTransport is not set", localEndPoint);
-                            }
-
-                            localEndPoint.setAddress(transportBootstrap.transportAddress);
-
-                            serviceEndpoint = newServiceEndpoint(serviceEndpointBuilder.build());
 
                             return createDiscovery(
                                     this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
                                     .publishOn(scheduler)
                                     .publishOn(scheduler)
                                     .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                                    .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                                    .then(compositeDiscovery.startListen())
+                                    .then(serviceDiscovery.start())
+                                    .then(serviceDiscovery.listen())
                                     .publishOn(scheduler)
                                     .thenReturn(this);
                         })
@@ -141,6 +145,22 @@ public class ServiceContext implements ServiceRegistry {
         Type returnType = null;
         // fireForgot,requestResponse,stream,channel
         return null;
+    }
+
+    public Mono<Void> shutdown() {
+        return Mono.defer(
+                () -> {
+                    shutdown.emitEmpty(RETRY_NON_SERIALIZED);
+                    return onShutdown.asMono();
+                });
+    }
+
+    public ServiceLookup router(int st) {
+        return serviceLookupMap.get(st);
+    }
+
+    public ServiceEndPoint localEndPoint() {
+        return localEndPoint;
     }
 
     public static class Builder {

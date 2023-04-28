@@ -1,4 +1,4 @@
-import io.protobj.services.annotations.Service;
+package hello;
 
 public class LocalService {
 

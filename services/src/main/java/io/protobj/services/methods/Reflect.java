@@ -18,6 +18,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.protobj.services.methods.CommunicationMode.*;
 import static io.scalecube.services.CommunicationMode.*;
 
 public class Reflect {
@@ -77,7 +78,7 @@ public class Reflect {
                 } catch (ClassNotFoundException e) {
                     return Object.class;
                 }
-            } else if (ServiceMessage.class.equals(method.getParameterTypes()[0])) {
+            } else if (Message.class.equals(method.getParameterTypes()[0])) {
                 return Object.class;
             } else {
                 return method.getParameterTypes()[0];
@@ -152,11 +153,6 @@ public class Reflect {
                                                         isSecured(method)))));
     }
 
-    /**
-     * Util function that returns the parameterized of the request Type of a given object.
-     *
-     * @return the parameterized Type of a given object or Object class if unknown.
-     */
     public static Type parameterizedRequestType(Method method) {
         if (method != null && method.getGenericParameterTypes().length > 0) {
             Type type = method.getGenericParameterTypes()[0];
@@ -167,100 +163,6 @@ public class Reflect {
 
         return Object.class;
     }
-
-    /**
-     * Util function to extract service name from service api.
-     *
-     * @param serviceInterface with @Service annotation.
-     * @return service name.
-     */
-    public static String serviceName(Class<?> serviceInterface) {
-        // Service name
-        Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-        if (serviceAnnotation == null) {
-            throw new IllegalArgumentException(
-                    String.format("Not a service interface: %s", serviceInterface));
-        }
-        return serviceAnnotation.value().length() > 0
-                ? serviceAnnotation.value()
-                : serviceInterface.getName();
-    }
-
-    /**
-     * Util function to extract service tags from service api.
-     *
-     * @param serviceInterface with @Service annotation.
-     * @return service tags
-     */
-    public static Map<String, String> serviceTags(Class<?> serviceInterface) {
-        return Reflect.transformArrayToMap(serviceInterface.getAnnotationsByType(Tag.class));
-    }
-
-    /**
-     * Util function to extract service tags from service method api.
-     *
-     * @param serviceMethod with @ServiceMethod annotation.
-     * @return service tags
-     */
-    public static Map<String, String> serviceMethodTags(Method serviceMethod) {
-        return Reflect.transformArrayToMap(serviceMethod.getAnnotationsByType(Tag.class));
-    }
-
-    private static Map<String, String> transformArrayToMap(Tag[] array) {
-        return array == null || array.length == 0
-                ? Collections.emptyMap()
-                : Collections.unmodifiableMap(
-                Arrays.stream(array).collect(Collectors.toMap(Tag::key, Tag::value)));
-    }
-
-    /**
-     * Util function to get service Method map from service api.
-     *
-     * @param serviceInterface with @Service annotation.
-     * @return service name.
-     */
-    public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-        Map<String, Method> methods =
-                Arrays.stream(serviceInterface.getMethods())
-                        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-                        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
-
-        return Collections.unmodifiableMap(methods);
-    }
-
-    /**
-     * Util function to get service interfaces collections from service instance.
-     *
-     * @param serviceObject with extends service interface with @Service annotation.
-     * @return service interface class.
-     */
-    public static Stream<Class<?>> serviceInterfaces(Object serviceObject) {
-        Class<?> current = serviceObject.getClass();
-        Set<Class<?>> interfaces = new HashSet<>();
-        while (current != Object.class) {
-            interfaces.addAll(Arrays.asList(current.getInterfaces()));
-            current = current.getSuperclass();
-        }
-        return interfaces.stream()
-                .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));
-    }
-
-    public static String methodName(Method method) {
-        ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-        return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
-    }
-
-    /**
-     * Handy method to get qualifier String from service's interface and method.
-     *
-     * @param serviceInterface service interface to get qualifier for
-     * @param method           service's method to get qualifier for
-     * @return qualifier string
-     */
-    public static String qualifier(Class<?> serviceInterface, Method method) {
-        return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
-    }
-
     /**
      * Util function to perform basic validation of service message request.
      *
@@ -335,6 +237,8 @@ public class Reflect {
             return REQUEST_RESPONSE;
         } else if (returnType.isAssignableFrom(Void.TYPE)) {
             return FIRE_AND_FORGET;
+        } else if (returnType.isAssignableFrom(Message.Content.class)) {
+            return REQUEST_RESPONSE_BLOCK;
         } else {
             throw new IllegalArgumentException(
                     "Service method is not supported (check return type or parameter type): " + method);
@@ -345,11 +249,7 @@ public class Reflect {
         Class<?>[] reqTypes = method.getParameterTypes();
         return reqTypes.length > 0
                 && (Flux.class.isAssignableFrom(reqTypes[0])
-                || Publisher.class.isAssignableFrom(reqTypes[0]));
-    }
-
-    public static boolean isService(Class<?> type) {
-        return type.isAnnotationPresent(Service.class);
+                || Flux.class.isAssignableFrom(reqTypes[1]));
     }
 
     public static boolean isSecured(Method method) {
