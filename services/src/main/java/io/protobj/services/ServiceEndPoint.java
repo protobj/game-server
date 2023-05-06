@@ -1,8 +1,10 @@
 package io.protobj.services;
 
-import io.protobj.services.methods.ServiceMethodInvoker;
+import io.protobj.services.methods.MethodInvoker;
 import io.scalecube.net.Address;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.BitSet;
 
@@ -14,7 +16,9 @@ public class ServiceEndPoint {
     private int[] slots;//可选参数
     private Address address;
     private transient BitSet slotBits;
-    private transient Int2ObjectMap<ServiceMethodInvoker> invokerMap;
+    private transient Int2ObjectMap<MethodInvoker> invokerMap = new Int2ObjectOpenHashMap<>();
+
+    private transient Scheduler scheduler;
 
     public synchronized BitSet slotBits() {
         if (slotBits != null) {
@@ -77,12 +81,8 @@ public class ServiceEndPoint {
         this.slotBits = slotBits;
     }
 
-    public Int2ObjectMap<ServiceMethodInvoker> getInvokerMap() {
+    public Int2ObjectMap<MethodInvoker> getInvokerMap() {
         return invokerMap;
-    }
-
-    public void setInvokerMap(Int2ObjectMap<ServiceMethodInvoker> invokerMap) {
-        this.invokerMap = invokerMap;
     }
 
     public Address getAddress() {
@@ -93,8 +93,17 @@ public class ServiceEndPoint {
         this.address = address;
     }
 
-    public ServiceMethodInvoker getInvoker(int cmd) {
+    public MethodInvoker getInvoker(int cmd) {
         return invokerMap.get(cmd);
+    }
+
+    public ServiceEndPoint setScheduler(Scheduler scheduler) {
+        this.scheduler = scheduler;
+        return this;
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 
     @Override

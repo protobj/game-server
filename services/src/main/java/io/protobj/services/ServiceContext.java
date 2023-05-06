@@ -1,12 +1,15 @@
 package io.protobj.services;
 
+import io.protobj.IServer;
 import io.protobj.services.annotations.Service;
 import io.protobj.services.api.Message;
 import io.protobj.services.discovery.api.ServiceDiscovery;
-import io.protobj.services.methods.Reflect;
-import io.protobj.services.methods.ServiceMethodInvoker;
+import io.protobj.services.methods.MethodInvoker;
+import io.protobj.services.methods.RpcMethodEnhance;
 import io.protobj.services.registry.api.ServiceRegistry;
+import io.protobj.services.router.LookupParam;
 import io.protobj.services.router.ServiceLookup;
+import io.protobj.services.transport.api.ClientChannel;
 import io.protobj.services.transport.api.ClientTransport;
 import io.protobj.services.transport.api.ServerTransport;
 import io.protobj.services.transport.api.ServiceTransport;
@@ -22,9 +25,6 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -40,15 +40,14 @@ public class ServiceContext implements ServiceRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceContext.class);
 
-    private final ServiceEndPoint localEndPoint;
+    private ServiceEndPoint localEndPoint;
 
-    private final ServiceDiscovery serviceDiscovery;
+    private ServiceDiscovery serviceDiscovery;
 
-
-    private final ServiceTransportBootstrap transportBootstrap;
+    private ServiceTransportBootstrap transportBootstrap;
     private final Int2ObjectMap<ServiceLookup> serviceLookupMap = new Int2ObjectOpenHashMap<>();
 
-    private final Int2ObjectMap<ServiceMethodInvoker> invokerMap;
+    private final IServer server;
 
     private final Sinks.One<Void> shutdown = Sinks.one();
     private final Sinks.One<Void> onShutdown = Sinks.one();
@@ -57,31 +56,12 @@ public class ServiceContext implements ServiceRegistry {
         this.localEndPoint = builder.localEndPoint;
         this.serviceDiscovery = builder.serviceDiscovery;
         this.transportBootstrap = builder.transportBootstrap;
-        this.invokerMap = parse(builder.serviceProviders);
+        this.server = builder.server;
     }
 
-    private Int2ObjectMap<ServiceMethodInvoker> parse(List<Object> serviceProviders) {
-        Int2ObjectMap<ServiceMethodInvoker> invokerMap = new Int2ObjectOpenHashMap<>();
-        for (Object serviceProvider : serviceProviders) {
-            Service service = serviceProvider.getClass().getAnnotation(Service.class);
-            int st = service.st();
-            Class<? extends ServiceLookup> router =null;
-            try {
-                ServiceLookup lookup = router.getConstructor().newInstance();
-                serviceLookupMap.putIfAbsent(st, lookup);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            for (Method method : serviceProvider.getClass().getDeclaredMethods()) {
-                Service methodAnnotation = method.getAnnotation(Service.class);
-                int ix = methodAnnotation.ix();
-                int id = st + ix;
-            }
-
-        }
-        return null;
+    public ServiceContext(IServer server) {
+        this.server = server;
     }
-
 
     public Mono<ServiceContext> start() {
         logger.info("[{}][start] Starting", localEndPoint);
@@ -96,17 +76,22 @@ public class ServiceContext implements ServiceRegistry {
                         transportBootstrap -> {
                             final Address serviceAddress = transportBootstrap.transportAddress;
                             localEndPoint.setAddress(serviceAddress);
-                    return Mono.just(ServiceContext.this);
+                            return Mono.just(ServiceContext.this);
 
-//                            return createDiscovery(
-//                                    this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-//                                    .publishOn(scheduler)
-//                                    .publishOn(scheduler)
-//                                    .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-//                                    .then(serviceDiscovery.start())
-//                                    .then(serviceDiscovery.listen())
-//                                    .publishOn(scheduler)
-//                                    .thenReturn(this);
+                            serviceDiscovery.start()
+                                    .publishOn(scheduler)
+                                    .flatMap(it->serviceDiscovery.listen())
+
+
+                            return createDiscovery(
+                                    this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
+                                    .publishOn(scheduler)
+                                    .publishOn(scheduler)
+                                    .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
+                                    .then(serviceDiscovery.start())
+                                    .then(serviceDiscovery.listen())
+                                    .publishOn(scheduler)
+                                    .thenReturn(this);
                         })
                 .onErrorResume(
                         ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(ServiceContext.class))
@@ -136,14 +121,40 @@ public class ServiceContext implements ServiceRegistry {
     }
 
     public <T> T api(Class<T> serviceInterface) {
-        Service service = serviceInterface.getAnnotation(Service.class);
-        int st = service.st();
+        try {
+            return RpcMethodEnhance.createApi(serviceInterface, this);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    public void fireForget(int st, int cmd, Message.Content content) {
+        ServiceLookup lookup = serviceLookupMap.get(st);
+        LookupParam lookupParam = null;
+        if (content != null) {
+            if (content instanceof Message.SidContent) {
+                lookupParam = LookupParam.sid(((Message.SidContent) content).sid());
+            } else if (content instanceof Message.SlotContent) {
+                lookupParam = LookupParam.hash();
+            }
+        } else {
+            lookupParam = LookupParam.min(st);
+        }
+        ClientChannel channel = lookup.lookup(this, localEndPoint, lookupParam);
+        channel.fireAndForget(Message.New(new Message.Header(cmd), content))
+                .subscribeOn(localEndPoint.getScheduler())
+                .subscribe();
+    }
 
-        int cmd = 100;
-        Message.Content content = null;
-        Type returnType = null;
-        // fireForgot,requestResponse,stream,channel
+    public <T extends Message.Content> Mono<T> requestResponse(int st, int cmd, Message.Content content, Class<T> ret) {
+        return null;
+    }
+
+    public <T extends Message.Content> Flux<T> requestStream(int st, int cmd, Message.Content content, Class<T> ret) {
+        return null;
+    }
+
+    public <T extends Message.Content> Flux<T> requestChannel(int st, int cmd, Flux<Message.Content> content, Class<T> ret) {
         return null;
     }
 
@@ -163,22 +174,60 @@ public class ServiceContext implements ServiceRegistry {
         return localEndPoint;
     }
 
+    public IServer getServer() {
+        return server;
+    }
+
+    public ServiceTransportBootstrap getTransportBootstrap() {
+        return transportBootstrap;
+    }
+
     public static class Builder {
         private ServiceEndPoint localEndPoint;
         private ServiceDiscovery serviceDiscovery;
         private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
-        private List<Object> serviceProviders = new ArrayList<>();
+        private IServer server;
+
+        private final List<Object> providers = new ArrayList<>();
 
         public Mono<ServiceContext> start() {
-            return Mono.defer(() -> new ServiceContext(this).start());
+            return Mono.defer(() -> {
+                localEndPoint.setScheduler(Schedulers.fromExecutor(server.getLogicExecutor()));
+                for (Object service : providers) {
+                    for (Class<?> anInterface : service.getClass().getInterfaces()) {
+                        Arrays.stream(anInterface.getDeclaredMethods()).filter(it -> it.isAnnotationPresent(Service.class)).sorted((o1, o2) -> {
+                            Service service12 = o1.getAnnotation(Service.class);
+                            Service service1 = o2.getAnnotation(Service.class);
+                            return service12.ix() - service1.ix();
+                        }).forEach(method -> {
+                            try {
+                                MethodInvoker invoker = RpcMethodEnhance.createInvoker(service, anInterface, method, server);
+                                MethodInvoker put = localEndPoint.getInvokerMap().put(invoker.cmd(), invoker);
+                                if (put != null) {
+                                    throw new RuntimeException(String.format("cmd repeat:%d", invoker.cmd()));
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    }
+                }
+                return new ServiceContext(this).start();
+            });
         }
 
         public ServiceContext startAwait() {
             return start().block();
         }
 
+        public Builder server(IServer server) {
+            this.server = server;
+            return this;
+        }
+
         public Builder services(Object... services) {
-            serviceProviders.addAll(Arrays.stream(services).collect(Collectors.toList()));
+            providers.addAll(Arrays.stream(services).collect(Collectors.toList()));
+
             return this;
         }
 
@@ -199,7 +248,7 @@ public class ServiceContext implements ServiceRegistry {
 
     }
 
-    private static class ServiceTransportBootstrap {
+    public static class ServiceTransportBootstrap {
 
         public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
         public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
@@ -282,6 +331,10 @@ public class ServiceContext implements ServiceRegistry {
                                                     .map(ServiceTransport::stop)
                                                     .orElse(Mono.empty()))
                                     .then());
+        }
+
+        public ClientTransport getClientTransport() {
+            return clientTransport;
         }
     }
 

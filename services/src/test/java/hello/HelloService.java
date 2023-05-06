@@ -27,4 +27,8 @@ public interface HelloService {
 
     @Service(ix = 5)
     Flux<HelloSidNameInvoker.HelloSidNameMessage> helloChannel(Flux<HelloSidNameInvoker.HelloSidNameMessage> name);
+
+
+    @Service(ix = 6)
+    void helloFireForgot(String name);
 }

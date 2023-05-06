@@ -18,19 +18,22 @@ public interface MethodInvoker {
         throw new UnsupportedOperationException();
     }
 
-    default Mono<Message.Content> invokeOne(Message.Content content) {
+    //    Mono<Message.Content>
+    default Mono invokeOne(Message.Content content) {
         throw new UnsupportedOperationException();
     }
 
     default Message.Content invokeOneBlock(Message.Content content) {
-        return invokeOne(content).block();
-    }
-
-    default Flux<Message.Content> invokeMany(Message.Content content) {
         throw new UnsupportedOperationException();
     }
 
-    default Flux<Message.Content> invokeBidirectional(Flux<Message.Content> content) {
+    //    Flux<Message.Content>
+    default Flux invokeMany(Message.Content content) {
+        throw new UnsupportedOperationException();
+    }
+
+    //    Flux<Message.Content>
+    default Flux invokeBidirectional(Flux content) {
         throw new UnsupportedOperationException();
     }
 

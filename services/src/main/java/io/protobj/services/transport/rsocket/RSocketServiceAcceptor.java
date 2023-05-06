@@ -6,11 +6,11 @@ import io.protobj.services.api.Message;
 import io.protobj.services.exceptions.BadRequestException;
 import io.protobj.services.exceptions.ServiceException;
 import io.protobj.services.exceptions.ServiceUnavailableException;
-import io.protobj.services.methods.ServiceMethodInvoker;
+import io.protobj.services.methods.CommunicationMode;
+import io.protobj.services.methods.MethodInvoker;
 import io.protobj.services.transport.api.ContentCodec;
 import io.protobj.services.transport.api.HeadersCodec;
 import io.protobj.services.transport.api.MessageCodec;
-import io.protobj.services.transport.api.ReferenceCountUtil;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -69,14 +69,37 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
         }
 
         @Override
+        public Mono<Void> fireAndForget(Payload payload) {
+            Mono.defer(() -> Mono.just(toMessage(payload)))
+                    .doOnNext(this::validateRequest)
+                    .flatMap(
+                            message -> {
+                                MethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
+                                validateMethodInvoker(methodInvoker, message);
+                                methodInvoker.invoke(message.getContent());
+                                return Mono.empty();
+                            })
+                    .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()))
+                    .subscribe();
+            return Mono.empty();
+        }
+
+        @Override
         public Mono<Payload> requestResponse(Payload payload) {
             return Mono.defer(() -> Mono.just(toMessage(payload)))
                     .doOnNext(this::validateRequest)
                     .flatMap(
                             message -> {
-                                ServiceMethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
+                                MethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
                                 validateMethodInvoker(methodInvoker, message);
-                                return methodInvoker.invokeOne(message);
+                                Mono mono;
+                                if (methodInvoker.mode() == CommunicationMode.REQUEST_RESPONSE) {
+                                    mono = methodInvoker.invokeOne(message.getContent());
+
+                                } else {
+                                    mono = Mono.fromCallable(() -> methodInvoker.invokeOneBlock(message.getContent()));
+                                }
+                                return (Mono<Message>) mono.map(it -> Message.New(message.getHeader(), (Message.Content) it));
                             })
                     .map(this::toPayload)
                     .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()));
@@ -88,10 +111,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .doOnNext(this::validateRequest)
                     .flatMapMany(
                             message -> {
-                                ServiceMethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
+                                MethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
                                 validateMethodInvoker(methodInvoker, message);
-                                return methodInvoker
-                                        .invokeMany(message);
+                                return (Flux<Message>) methodInvoker.invokeMany(message.getContent()).map(it -> Message.New(message.getHeader(), (Message.Content) it));
                             })
                     .map(this::toPayload)
                     .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()));
@@ -106,9 +128,11 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                                 if (first.hasValue()) {
                                     Message message = first.get();
                                     validateRequest(message);
-                                    ServiceMethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
-                                    return methodInvoker
-                                            .invokeBidirectional(messages);
+                                    MethodInvoker methodInvoker = endPoint.getInvoker(message.getHeader().getCmd());
+                                    return (Flux<Message>) methodInvoker
+                                            .invokeBidirectional(messages.map(it -> it.getContent()))
+                                            .map(it -> Message.New(message.getHeader(), (Message.Content) it))
+                                            ;
                                 }
                                 return messages;
                             })
@@ -125,8 +149,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 ByteBuf contentBuffer = payload.sliceData().retain();
                 ByteBuf headersBuffer = payload.sliceMetadata().retain();
                 Message.Header header = messageCodec.decodeHeader(headersBuffer);
-                ServiceMethodInvoker invoker = endPoint.getInvoker(header.getCmd());
-                Type paramType = invoker.getParamType();
+                MethodInvoker invoker = endPoint.getInvoker(header.getCmd());
+                Type paramType = invoker.parameterType();
                 return messageCodec.decodeContent(header, contentBuffer, paramType);
             } finally {
                 payload.release();
@@ -140,7 +164,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
             }
         }
 
-        private void validateMethodInvoker(ServiceMethodInvoker methodInvoker, Message message) {
+        private void validateMethodInvoker(MethodInvoker methodInvoker, Message message) {
             if (methodInvoker == null) {
                 LOGGER.error("No service invoker found, invocation failed for {}", message);
                 throw new ServiceUnavailableException("No service invoker found");

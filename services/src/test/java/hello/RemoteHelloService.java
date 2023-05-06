@@ -11,13 +11,11 @@ import io.protobj.resource.ResourceManager;
 import io.protobj.scheduler.SchedulerService;
 import io.protobj.services.ServiceContext;
 import io.protobj.services.annotations.Service;
-import io.protobj.services.api.Message;
-import io.protobj.services.methods.MethodInvoker;
-import io.protobj.services.methods.MethodInvokerEnhance;
+import io.protobj.services.methods.RpcMethodEnhance;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 
 public class RemoteHelloService implements HelloService {
@@ -45,6 +43,11 @@ public class RemoteHelloService implements HelloService {
     @Override
     public Flux<HelloSidNameInvoker.HelloSidNameMessage> helloChannel(Flux<HelloSidNameInvoker.HelloSidNameMessage> name) {
         return null;
+    }
+
+    @Override
+    public void helloFireForgot(String name) {
+        System.err.println("hello " + name);
     }
 
     @Override
@@ -112,11 +115,21 @@ public class RemoteHelloService implements HelloService {
         };
         RemoteHelloService remoteHelloService = new RemoteHelloService();
         for (Class<?> anInterface : remoteHelloService.getClass().getInterfaces()) {
-            for (Method declaredMethod : anInterface.getDeclaredMethods()) {
-                if (declaredMethod.isAnnotationPresent(Service.class)) {
-                    MethodInvokerEnhance.create(remoteHelloService,anInterface, declaredMethod, server);
+            Arrays.stream(anInterface.getDeclaredMethods()).filter(it -> it.isAnnotationPresent(Service.class)).sorted((o1, o2) -> {
+                Service service = o1.getAnnotation(Service.class);
+                Service service1 = o2.getAnnotation(Service.class);
+                return service.ix() - service1.ix();
+            }).forEach(method -> {
+                try {
+                    RpcMethodEnhance.createInvoker(remoteHelloService, anInterface, method, server);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
         }
+        ServiceContext context = new ServiceContext(server);
+        HelloService helloService = RpcMethodEnhance.createApi(HelloService.class, context);
+        System.err.println();
+        RpcMethodEnhance.deleteTempDir();
     }
 }

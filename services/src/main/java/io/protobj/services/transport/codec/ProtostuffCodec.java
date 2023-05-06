@@ -35,6 +35,8 @@ public class ProtostuffCodec implements HeadersCodec, ContentCodec {
             }
             //noinspection rawtypes
             Schema schema = RuntimeSchema.getSchema(clazz);
+
+
             Object result = schema.newMessage();
             //noinspection unchecked
             ProtobufIOUtil.mergeFrom(stream, result, schema, LinkedBuffer.allocate());

@@ -58,6 +58,18 @@ public class Message {
         public void setError(boolean error) {
             this.error = error;
         }
+
+        public Header(int cmd) {
+            this.cmd = cmd;
+        }
+
+        public Header(int cmd, boolean error) {
+            this.cmd = cmd;
+            this.error = error;
+        }
+
+        public Header() {
+        }
     }
 
     public interface Content {

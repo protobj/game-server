@@ -1,14 +1,12 @@
 package io.protobj.services.router;
 
+import io.protobj.services.ServiceContext;
 import io.protobj.services.ServiceEndPoint;
+import io.protobj.services.transport.api.ClientChannel;
 import reactor.core.publisher.Mono;
 
 public interface ServiceLookup {
-    Mono<ServiceEndPoint> lookupByGid(ServiceEndPoint local, int gid);
-
-    Mono<ServiceEndPoint> lookupBySid(ServiceEndPoint local, int sid);
-
-    Mono<ServiceEndPoint> lookup(ServiceEndPoint local);
+    ClientChannel lookup(ServiceContext serviceContext, ServiceEndPoint local, LookupParam param);
 
     boolean focus(ServiceEndPoint endPoint);
 

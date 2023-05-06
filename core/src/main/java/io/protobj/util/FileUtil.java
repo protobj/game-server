@@ -31,4 +31,21 @@ public class FileUtil {
         }
         return files;
     }
+
+    public static void deleteAll(File file) {
+        if (file == null) {
+            return;
+        }
+        if (!file.exists()) {
+            return;
+        }
+        for (File listFile : file.listFiles()) {
+            if (listFile.isDirectory()) {
+                deleteAll(listFile);
+            }else{
+                listFile.delete();
+            }
+        }
+        file.delete();
+    }
 }
