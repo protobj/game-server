@@ -27,9 +27,7 @@ public class DefaultClusterService {
 
     private Scheduler scheduler;
 
-    private Int2ObjectMap<ClusterMemberEvent> memberEventMap;
 
-    private SlotRing slotRing;
 
     public void start() {
         ClusterConfig config = new ClusterConfig();
@@ -42,9 +40,8 @@ public class DefaultClusterService {
                 .start()
                 .subscribe()
         ;
-        memberEventMap = new Int2ObjectOpenHashMap<>();
         scheduler = Schedulers.newSingle("cluster-member", true);
-        slotRing = new SlotRing("cluster-member");
+
         discoveryService.listen()
                 .onBackpressureBuffer()
                 .subscribeOn(scheduler)
@@ -53,15 +50,12 @@ public class DefaultClusterService {
     }
 
     private void onEvent(ClusterMemberEvent clusterMemberEvent) {
+        String id = clusterMemberEvent.member().id();
         MemberMetadata metadata = clusterMemberEvent.metadata();
         if (clusterMemberEvent.isAdded() || clusterMemberEvent.isUpdated()) {
-            memberEventMap.put(metadata.getId(), clusterMemberEvent);
-            slotRing.addOrUpd(metadata.getId(), metadata.getSlots());
+            slotRing.addOrUpd(id, metadata.getSlots());
         } else if (clusterMemberEvent.isRemoved() || clusterMemberEvent.isLeaving()) {
-            ClusterMemberEvent removed = memberEventMap.remove(metadata.getId());
-            if (removed != null) {
-                slotRing.delete(metadata.getId());
-            }
+            slotRing.delete(id);
         }
     }
 

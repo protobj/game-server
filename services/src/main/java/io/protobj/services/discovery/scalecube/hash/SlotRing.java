@@ -1,32 +1,29 @@
 package io.protobj.services.discovery.scalecube.hash;
 
-import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class SlotRing {
+public class SlotRing<T> {
     private static final Logger logger = LoggerFactory.getLogger(SlotRing.class);
     private final String ringName;
     public static final int MAX_SLOT = 16384;
 
     //hash槽
-    private final VirtualNode[] slots = new VirtualNode[MAX_SLOT];
+    private final VirtualNode<T>[] slots = new VirtualNode[MAX_SLOT];
     //判断集群是否填充满
     private final BitSet slotBitSet = new BitSet(MAX_SLOT);
     // 通过startSlot排序，快速找出下一个
-    private final SortedArrayList<VirtualNode> virtualNodes = new SortedArrayList<>(Comparator.comparing(VirtualNode::getStartSlot));
+    private final SortedArrayList<VirtualNode<T>> virtualNodes = new SortedArrayList<>(Comparator.comparing(VirtualNode::getStartSlot));
 
-    private final Int2ObjectMap<int[]> sid2slotsMap = new Int2ObjectOpenHashMap<>();
+    private final Map<T, int[]> sid2slotsMap = new HashMap<>();
 
     public SlotRing(String ringName) {
         this.ringName = ringName;
     }
 
-    public boolean checkSlots(int sid, int[] slots) {
+    public boolean checkSlots(T sid, int[] slots) {
         for (int i = 0; i < slots.length; i += 2) {
             int start = slots[i];
             int end = slots[i + 1];
@@ -38,9 +35,9 @@ public class SlotRing {
         return true;
     }
 
-    private final VirtualNode testNode = new VirtualNode(0, 0, 0);
+    private final VirtualNode<T> testNode = new VirtualNode<T>(0, 0, null);
 
-    public boolean addOrUpd(int sid, int[] slots) {
+    public boolean addOrUpd(T sid, int[] slots) {
         if (!checkSlots(sid, slots)) {
             return false;
         }
@@ -91,23 +88,23 @@ public class SlotRing {
         }
     }
 
-    private void addVirtualNodes(int sid, int[] slots) {
+    private void addVirtualNodes(T sid, int[] slots) {
         for (int i = 0; i < slots.length; i += 2) {
-            VirtualNode virtualNode = new VirtualNode(slots[i], slots[i + 1], sid);
+            VirtualNode<T> virtualNode = new VirtualNode<T>(slots[i], slots[i + 1], sid);
             virtualNodes.add(virtualNode);
             Arrays.fill(this.slots, virtualNode.getStartSlot(), virtualNode.getEndSlot() + 1, virtualNode);
         }
     }
 
-    private void removeVirtualNodes(int sid, int[] slots) {
+    private void removeVirtualNodes(T sid, int[] slots) {
         for (int i = 0; i < slots.length; i += 2) {
-            virtualNodes.remove(new VirtualNode(i, i + 1, sid));
+            virtualNodes.remove(new VirtualNode<>(i, i + 1, sid));
             Arrays.fill(this.slots, slots[i], slots[i + 1] + 1, null);
         }
     }
 
 
-    public void delete(int sid) {
+    public void delete(T sid) {
         int[] slots = sid2slotsMap.get(sid);
         if (slots == null) {
             return;
@@ -128,17 +125,17 @@ public class SlotRing {
      * @param key
      * @return sid
      */
-    public int hit(long key) {
+    public T hit(long key) {
         int slot = JedisClusterCRC16.getSlot(key);
-        VirtualNode virtualNode = getVirtualNode(slot);
+        VirtualNode<T> virtualNode = getVirtualNode(slot);
         if (virtualNode == null) {
-            return 0;
+            return null;
         }
         return virtualNode.getSid();
     }
 
-    private VirtualNode getVirtualNode(int slot) {
-        VirtualNode virtualNode = slots[slot];
+    private VirtualNode<T> getVirtualNode(int slot) {
+        VirtualNode<T> virtualNode = slots[slot];
         if (virtualNode == null) {
             testNode.setStartSlot(slot);
             int insertionPoint = virtualNodes.findInsertionPoint(testNode);
@@ -150,7 +147,7 @@ public class SlotRing {
                     virtualNode = virtualNodes.get(0);
                 }
             } else {
-                VirtualNode virtualNode1 = virtualNodes.get(insertionPoint - 1);
+                VirtualNode<T> virtualNode1 = virtualNodes.get(insertionPoint - 1);
                 if (slot <= virtualNode1.getEndSlot()) {
                     virtualNode = virtualNodes.get(insertionPoint - 1);
                 } else {

@@ -1,12 +1,12 @@
 package io.protobj.services.discovery.scalecube.hash;
 
-public class VirtualNode {
+public class VirtualNode<T> {
 
-    private final int sid;
+    private final T sid;
     private int startSlot;
     private final int endSlot;
 
-    public VirtualNode(int startSlot, int endSlot, int sid) {
+    public VirtualNode(int startSlot, int endSlot, T sid) {
         super();
         this.sid = sid;
         this.startSlot = startSlot;
@@ -46,7 +46,7 @@ public class VirtualNode {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        VirtualNode other = (VirtualNode) obj;
+        VirtualNode<T> other = (VirtualNode<T>) obj;
         if (endSlot != other.endSlot)
             return false;
         if (startSlot != other.startSlot)
@@ -54,7 +54,7 @@ public class VirtualNode {
         return true;
     }
 
-    public int getSid() {
+    public T getSid() {
         return sid;
     }
 

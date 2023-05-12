@@ -72,26 +72,22 @@ public class ServiceContext implements ServiceRegistry {
         return transportBootstrap
                 .start(this)
                 .publishOn(scheduler)
-                .flatMap(
+                .map(
                         transportBootstrap -> {
                             final Address serviceAddress = transportBootstrap.transportAddress;
                             localEndPoint.setAddress(serviceAddress);
-                            return Mono.just(ServiceContext.this);
-
                             serviceDiscovery.start()
-                                    .publishOn(scheduler)
-                                    .flatMap(it->serviceDiscovery.listen())
+                                    .subscribeOn(scheduler)
+                                    .subscribe(t -> {
+                                        serviceDiscovery.listen()
+                                                .subscribeOn(scheduler)
+                                                .subscribe(event -> {
+                                                    if (event.isAdded() ) {
 
-
-                            return createDiscovery(
-                                    this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                                    .publishOn(scheduler)
-                                    .publishOn(scheduler)
-                                    .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                                    .then(serviceDiscovery.start())
-                                    .then(serviceDiscovery.listen())
-                                    .publishOn(scheduler)
-                                    .thenReturn(this);
+                                                    }
+                                                });
+                                    });
+                            return ServiceContext.this;
                         })
                 .onErrorResume(
                         ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(ServiceContext.class))

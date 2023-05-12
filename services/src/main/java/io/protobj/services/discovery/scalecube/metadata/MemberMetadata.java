@@ -1,19 +1,10 @@
 package io.protobj.services.discovery.scalecube.metadata;
 
-import io.scalecube.net.Address;
+import io.protobj.services.ServiceEndPoint;
 
 public class MemberMetadata {
-    private int id;
-    private Address address;
     private int[] slots;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
+    private ServiceEndPoint serviceEndPoint;
 
     public int[] getSlots() {
         return slots;
@@ -23,4 +14,12 @@ public class MemberMetadata {
         this.slots = slots;
     }
 
+    public ServiceEndPoint getServiceEndPoint() {
+        return serviceEndPoint;
+    }
+
+    public MemberMetadata setServiceEndPoint(ServiceEndPoint serviceEndPoint) {
+        this.serviceEndPoint = serviceEndPoint;
+        return this;
+    }
 }
